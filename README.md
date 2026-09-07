@@ -1,7 +1,7 @@
 # Switch-CFW-Tool
 
 Windows-Tool (C# / WPF, .NET 8) zum automatischen Zusammenstellen eines fertigen
-`sdmc`-Ordners aus Hekate, Atmosphère, sys-patch und weiteren Homebrew-Tools, oder zum
+`SDMC`-Ordners, installieren von CFW direkt auf die `SD` Karte oder zum
 direkten Aktualisieren einer bestehenden SD-Karte.
 
 ## Bauen
@@ -43,18 +43,3 @@ Die `.exe` liegt danach unter `bin/Release/net8.0-windows/win-x64/publish/Switch
 - Help → **Log**: blendet das Ausgabe-Log ein/aus (standardmäßig ausgeblendet)
 - Standard-Ausgabeordner: `%USERPROFILE%\Downloads\sdmc`
 - 24 Tools insgesamt, siehe `Data/ToolCatalog.cs` für die vollständige Liste inkl. Sonderbehandlungen (Emuiibo SdOut-Entpacken, EdiZon-SE mit gebündeltem Overlay, TegraExplorer als Payload, etc.)
-
-## Wichtig, vor dem ersten echten Lauf prüfen
-
-Ich hatte in dieser Sandbox **keinen Internetzugriff**, konnte die tatsächlichen Release-
-Asset-Namen der Repos also nicht verifizieren. Die `AssetNamePattern`-Werte in
-`ToolCatalog.cs` sind nach bestem Wissen gesetzt, aber bei jedem Tool solltest du beim
-ersten Durchlauf im Log kontrollieren, ob wirklich die richtige Datei aus dem Release
-gezogen wurde.
-
-Die zweite `hekate_ipl.ini` (in `bootloader/ini/`) referenziert `bootloader/payloads/TegraExplorer.bin` –
-Tegra Explorer steht nicht auf der Tool-Liste und wird von diesem Programm nicht heruntergeladen,
-dieser Menüpunkt in Hekate würde also ins Leere laufen.
-
-Die Kompatibilitätsprüfung ist ein Best-Effort-Abgleich der Firmware-Angaben aus den
-Release-Notes-Texten, keine offizielle Matrix – sie warnt nur, blockiert aber keinen Build.
