@@ -1,8 +1,14 @@
 # Switch-CFW-Tool
 
-Windows-Tool (C# / WPF, .NET 8) zum automatischen Zusammenstellen eines fertigen
-`sdmc`-Ordners aus Hekate, Atmosphère, sys-patch und weiteren Homebrew-Tools, oder zum
-direkten Aktualisieren einer bestehenden SD-Karte.
+Windows-Tool (C# / WPF, .NET 8) zum Zusammenstellen von Custom Firmware für die Nintendo
+Switch aus offiziellen Homebrew-GitHub-Releases. Wählt Tools per Checkbox aus, lädt sie
+herunter und ordnet sie in die korrekte SD-Karten-Struktur — entweder als fertiger
+`SDMC`-Ordner zum Kopieren oder direkt auf eine ausgewählte SD-Karte.
+
+Zusätzlich: Verwaltung bestehender Installationen (updaten/deinstallieren), optische
+Anpassung von Ultrahand und Hekate, geführte Einführung für neue Nutzer.
+
+Ausführliche Architektur- und Entscheidungsdokumentation: [PROJEKT-DOKUMENTATION.md](PROJEKT-DOKUMENTATION.md).
 
 ## Bauen
 
@@ -12,7 +18,7 @@ Voraussetzung: [.NET 8 SDK](https://dotnet.microsoft.com/download) auf einem Win
 dotnet build -c Release
 ```
 
-Für eine fertige, eigenständige `.exe` (User braucht keine .NET-Runtime installiert):
+Für eine fertige, eigenständige `.exe` (kein .NET-Runtime-Install beim Nutzer nötig):
 
 ```
 dotnet publish -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true
@@ -22,39 +28,40 @@ Die `.exe` liegt danach unter `bin/Release/net8.0-windows/win-x64/publish/Switch
 
 ## Projektstruktur
 
-- `Models/CfwTool.cs` – Beschreibung eines Tools (Name, Autor, Repo, Tooltip-Text, Asset-Muster)
+- `Models/CfwTool.cs` – Beschreibung eines Tools (Name, Autor, Repo, Asset-Muster, Footprint, ...)
 - `Data/ToolCatalog.cs` – **einzige Stelle**, an der neue Tools ergänzt werden
-- `Services/GitHubService.cs` – GitHub-API: neuestes Release / alle Releases, Asset-Auswahl per Wildcard
-- `Services/DownloadService.cs` – Download + ZIP-Extraktion in einen Staging-Ordner
-- `Services/SdCardBuilder.cs` – merged die Staging-Ordner in den finalen `sdmc`-Ordner, lässt bekannte User-Configs beim erneuten Bauen unangetastet
-- `Services/MmcConfigService.cs` – schreibt `exosphere.ini` (SD-Root) passend zu SysMMC/EmuMMC und pflegt die DNS-MITM-Blockliste für Nintendo-Server
-- `Services/BundledAssetsService.cs` – packt die eingebettete `hekate_ipl.ini` (+ zweite ini in `bootloader/ini/`) und die vier `bootloader/res`-Icons aus
-- `Services/CompatibilityService.cs` – vergleicht Firmware-Hinweise aus den Release Notes, warnt bei Abweichungen
-- `MainWindow.xaml(.cs)` – UI: Menüleiste, Checkboxen mit Hover-Tooltips, Latest/Custom, SysMMC/EmuMMC, Build-Button, ausblendbares Log
-- `InfoWindow.xaml(.cs)` – Help → Info Fenster mit Credits
+- `Services/GitHubService.cs` – GitHub-API: Release-Abfrage, Asset-Auswahl, Rate-Limit-Meldungen
+- `Services/DownloadService.cs` – Download + Entpacken in einen Staging-Ordner
+- `Services/SdCardBuilder.cs` – ordnet Staging-Ordner in die SD-Struktur ein, leitet das Ziel aus dem tatsächlichen Archivinhalt ab statt aus Annahmen
+- `Services/ToolInstaller.cs` – installiert ein Tool, genutzt von Build **und** Manage CFW
+- `Services/InstallManifest.cs` / `Services/ToolDetector.cs` – Verzeichnisdatei bzw. Erkennung fremd installierter Tools
+- `Services/HekateIniService.cs` – secmon-Zeilen, KIP-Pflege, Abschnittsfilterung in `hekate_ipl.ini`
+- `Services/MmcConfigService.cs` – schreibt `exosphere.ini` passend zu SysMMC/EmuMMC und die DNS-MITM-Blockliste
+- `Services/BundledAssetsService.cs` – packt die eingebettete `hekate_ipl.ini` (+ zweite ini in `bootloader/ini/`) und die `bootloader/res`-Icons aus
+- `Services/BootIntegrityCheck.cs` – prüft nach dem Build, ob die für den Boot nötigen Dateien vollständig sind
+- `Services/UltrahandTheme.cs` / `Services/UltrahandWallpaper.cs` / `Services/HekateWallpaper.cs` – Theming
+- `MainWindow.xaml(.cs)` – Hauptfenster: Toolliste, Latest/Custom, SysMMC/EmuMMC, Build
+- `ManageCfwWindow.xaml(.cs)` – installierte Tools auf einer SD-Karte verwalten
+- `ThemingWindow.xaml(.cs)` – Ultrahand-Theme, Hekate-Hintergrund, Wallpaper
+- `InfoWindow.xaml(.cs)` – Help → Info: Credits für alle enthaltenen Homebrew-Tools
 
 ## Features
 
-- Latest/Custom-Auswahl pro Tool
-- SysMMC/EmuMMC-Auswahl mit automatischer `exosphere.ini` (inkl. `blank_prodinfo_*` passend zum gewählten Modus) und DNS-MITM-Hostliste
-- Datei → **Select your SD Card with CFW to update**: wählt eine bestehende SD-Karte direkt als Ziel (Update-Modus, Configs bleiben erhalten)
-- Help → **Tutorial**: Platzhalter-Fenster, Inhalt folgt
-- Help → **Info**: Credits für alle enthaltenen Homebrew-Tools + Patreon-Link
-- Help → **Log**: blendet das Ausgabe-Log ein/aus (standardmäßig ausgeblendet)
-- Standard-Ausgabeordner: `%USERPROFILE%\Downloads\sdmc`
-- 24 Tools insgesamt, siehe `Data/ToolCatalog.cs` für die vollständige Liste inkl. Sonderbehandlungen (Emuiibo SdOut-Entpacken, EdiZon-SE mit gebündeltem Overlay, TegraExplorer als Payload, etc.)
+- Latest/Custom-Auswahl pro Tool, 31 Tools im Katalog (`Data/ToolCatalog.cs`)
+- SysMMC/EmuMMC-Auswahl mit automatischer `exosphere.ini` und DNS-MITM-Hostliste
+- Manage CFW: installierte Tools auf einer bestehenden SD-Karte erkennen, updaten, deinstallieren
+- Theming für Ultrahand-Overlay (54 Parameter, Live-Vorschau) und Hekate-Hintergrund/Wallpaper
+- Boot-Integritätsprüfung nach dem Build
+- Help → Log: blendet das Ausgabe-Log ein/aus (standardmäßig ausgeblendet)
+- Help → FAQ: Platzhalter-Fenster, Inhalt folgt
 
 ## Wichtig, vor dem ersten echten Lauf prüfen
 
-Ich hatte in dieser Sandbox **keinen Internetzugriff**, konnte die tatsächlichen Release-
-Asset-Namen der Repos also nicht verifizieren. Die `AssetNamePattern`-Werte in
-`ToolCatalog.cs` sind nach bestem Wissen gesetzt, aber bei jedem Tool solltest du beim
-ersten Durchlauf im Log kontrollieren, ob wirklich die richtige Datei aus dem Release
-gezogen wurde.
+Die `AssetNamePattern`-Werte in `ToolCatalog.cs` sind nach bestem Wissen gesetzt, aber nicht
+für jedes Tool durch einen echten Download verifiziert — bei einem Fehlschlag nennt das Log
+die tatsächlich im Release vorhandenen Dateinamen, damit sich das Muster leicht korrigieren
+lässt.
 
-Die zweite `hekate_ipl.ini` (in `bootloader/ini/`) referenziert `bootloader/payloads/TegraExplorer.bin` –
-Tegra Explorer steht nicht auf der Tool-Liste und wird von diesem Programm nicht heruntergeladen,
-dieser Menüpunkt in Hekate würde also ins Leere laufen.
+## Lizenz
 
-Die Kompatibilitätsprüfung ist ein Best-Effort-Abgleich der Firmware-Angaben aus den
-Release-Notes-Texten, keine offizielle Matrix – sie warnt nur, blockiert aber keinen Build.
+[GPL-3.0](LICENSE)
