@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+
+# JetBrains Rider
+.idea/
+
+# Marker file created next to the exe once the Quick Tour has been offered
+quicktour.done

@@ -1,0 +1,219 @@
+<Window x:Class="SwitchCfwTool.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Switch-CFW-Tool" Height="820" Width="640"
+        MinHeight="500" MinWidth="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource WindowBackground}"
+        Foreground="{StaticResource TextBrush}"
+        Icon="Assets/appicon.ico"
+        TextOptions.TextFormattingMode="Ideal">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu bar -->
+        <Menu Grid.Row="0" Margin="6,4,6,0">
+            <MenuItem x:Name="MenuFile" Header="_File">
+                <MenuItem Header="Manage CFW" Click="ManageCfw_Click"/>
+            </MenuItem>
+            <MenuItem x:Name="MenuInfo" Header="_Info">
+                <MenuItem Header="About" Click="Info_Click"/>
+                <MenuItem x:Name="LogMenuItem" Header="Log" IsCheckable="True" Click="ToggleLog_Click"/>
+            </MenuItem>
+            <MenuItem x:Name="MenuExtras" Header="_Extras">
+                <MenuItem Header="Theming" Click="Theming_Click"/>
+            </MenuItem>
+            <MenuItem x:Name="MenuHelp" Header="_Help">
+                <MenuItem Header="Quick Tour" Click="QuickTour_Click"/>
+                <MenuItem Header="FAQ" Click="Faq_Click"/>
+                <MenuItem Header="Discord" Click="Discord_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Debug">
+                <MenuItem Header="GitHub Token" Click="GitHubLogin_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <Grid Grid.Row="1" Margin="18,10,18,18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition x:Name="LogRow" Height="0"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,14" HorizontalAlignment="Center">
+                <TextBlock Text="Switch CFW Tool" FontSize="24" FontWeight="Bold"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="CREATE &amp; MANAGE YOUR SWITCH CFW WITH EASE" FontSize="12"
+                           HorizontalAlignment="Center" FontWeight="Bold"
+                           Foreground="{StaticResource TealBrush}" Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <!-- Mode selectors -->
+            <Grid Grid.Row="1" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border x:Name="VersionPanel" Grid.Column="0" Background="{StaticResource PanelBrush}" CornerRadius="12"
+                        BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}"
+                        Padding="14,10">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <RadioButton x:Name="RadioLatest" Content="Latest" IsChecked="True" GroupName="VersionMode"
+                                     Margin="0,0,8,0" Checked="VersionMode_Changed"/>
+                        <RadioButton x:Name="RadioCustom" Content="Custom" GroupName="VersionMode"
+                                     Checked="VersionMode_Changed"/>
+                    </StackPanel>
+                </Border>
+                <Border x:Name="MmcPanel" Grid.Column="2" Background="{StaticResource PanelBrush}" CornerRadius="12"
+                        BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}"
+                        Padding="14,10">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <RadioButton x:Name="RadioEmuMmc" Content="EmuMMC" IsChecked="True" GroupName="MmcMode" Margin="0,0,8,0"/>
+                        <RadioButton x:Name="RadioSysMmc" Content="SysMMC" GroupName="MmcMode"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Tool list -->
+            <Border Grid.Row="2" Background="{StaticResource PanelBrush}" CornerRadius="12"
+                    BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}"
+                    Padding="6,8" Margin="0,0,0,12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="SELECT TOOLS  ·  HOVER OVER A NAME FOR DETAILS"
+                               FontSize="10.5" FontWeight="Bold" Margin="0,2,0,8"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               Foreground="{StaticResource TealBrush}"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="ToolsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="0,0,0,1"
+                                            Padding="12,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="215"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0"
+                                                      Style="{StaticResource ToolCheckBox}"
+                                                      IsChecked="{Binding IsSelected}"
+                                                      Content="{Binding Tool.DisplayName}"
+                                                      FontWeight="SemiBold" FontSize="14.5"
+                                                      ToolTipService.ShowDuration="20000"
+                                                      VerticalAlignment="Center">
+                                                <CheckBox.ToolTip>
+                                                    <ToolTip>
+                                                        <TextBlock Text="{Binding Tool.Description}"
+                                                                   TextWrapping="Wrap" MaxWidth="300"/>
+                                                    </ToolTip>
+                                                </CheckBox.ToolTip>
+                                            </CheckBox>
+                                            <ComboBox Grid.Column="1" Height="28"
+                                                      Visibility="{Binding CustomVersionVisibility}"
+                                                      ItemsSource="{Binding AvailableVersions}"
+                                                      SelectedItem="{Binding SelectedVersion}"
+                                                      DisplayMemberPath="Label"/>
+                                            <TextBlock Grid.Column="1" IsHitTestVisible="False"
+                                                       Visibility="{Binding VersionHintVisibility}"
+                                                       Text="Select this tool to view versions"
+                                                       FontSize="11" FontStyle="Italic"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       VerticalAlignment="Center" Margin="12,0,26,0"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding LatestLabel}"
+                                                       Visibility="{Binding LatestVersionVisibility}"
+                                                       Foreground="{StaticResource TealBrush}"
+                                                       FontWeight="SemiBold" FontSize="13.5"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Right" Margin="0,0,10,0"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Output folder -->
+            <Grid x:Name="OutputRow" Grid.Row="3" Margin="2,0,2,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" x:Name="TargetKindLabel" Text="PC FOLDER"
+                           VerticalAlignment="Center" FontWeight="Bold" MinWidth="86"
+                           Margin="0,0,10,0" Foreground="{StaticResource TealBrush}" FontSize="12"/>
+                <Grid Grid.Column="1">
+                    <TextBox x:Name="OutputPathBox" VerticalAlignment="Center" MinWidth="120"/>
+                    <!-- Placeholder shown until something is chosen; the box itself stays empty
+                         so nothing has to be cleared before typing a path. -->
+                    <TextBlock x:Name="TargetHint" IsHitTestVisible="False"
+                               Text="SELECT YOUR SD CARD OR FOLDER TO INSTALL CFW..."
+                               VerticalAlignment="Center" Margin="10,0,0,0" FontSize="11.5"
+                               FontWeight="Bold" Foreground="{StaticResource TealBrush}"/>
+                </Grid>
+                <Button Grid.Column="2" Content="Browse" Style="{StaticResource PrimaryButton}"
+                        Margin="8,0,0,0" Padding="18,6" Click="Browse_Click"/>
+            </Grid>
+
+            <!-- Build button + progress + result indicator -->
+            <Grid Grid.Row="4" Margin="2,0,2,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Row="0" Grid.Column="0" x:Name="BuildButton" Content="Build CFW"
+                        Style="{StaticResource PrimaryButton}" Padding="22,9" Click="Build_Click"/>
+                <ProgressBar Grid.Row="0" Grid.Column="1" x:Name="BuildProgress" Height="14"
+                             Margin="14,0,0,0" VerticalAlignment="Center"/>
+                <!-- Result shown here so the outcome is visible even with the log hidden. -->
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="StatusText"
+                           FontWeight="Bold" FontSize="12.5" TextWrapping="Wrap"
+                           HorizontalAlignment="Right" TextAlignment="Right"
+                           Margin="14,7,0,0" Visibility="Collapsed"/>
+            </Grid>
+
+            <!-- Log (hidden by default, toggled via Help > Log) -->
+            <Border Grid.Row="5" Background="{StaticResource PanelBrush}" CornerRadius="12"
+                    Margin="2,12,2,0" Padding="6,8"
+                    BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="OUTPUT LOG" FontSize="10.5" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,2,0,6"
+                               Foreground="{StaticResource TealBrush}"/>
+                    <!-- Inset from the border so the scrollbar doesn't sit on the rounded
+                         corners, where it looked clipped at the top and bottom. -->
+                    <RichTextBox Grid.Row="1" x:Name="LogBox" IsReadOnly="True" Background="Transparent"
+                                 BorderThickness="0" Padding="8,0" Margin="0,0,4,2"
+                                 Foreground="{StaticResource TextBrush}"
+                                 VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Quick Tour draws into this layer; it sits above everything and spans both rows. -->
+        <Grid x:Name="TourHost" Grid.Row="0" Grid.RowSpan="2"
+              Visibility="Collapsed" Panel.ZIndex="99"/>
+    </Grid>
+</Window>

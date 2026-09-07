@@ -1,0 +1,78 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Switch-CFW-Tool</AssemblyName>
+    <RootNamespace>SwitchCfwTool</RootNamespace>
+    <ApplicationIcon>Assets\appicon.ico</ApplicationIcon>
+
+    <!-- Self contained publish settings so end users don't need the .NET runtime installed.
+         Build with: dotnet publish -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
+    <!-- Compresses the whole bundle. The embedded assets alone are ~4.6 MB of bitmaps and
+         raw pixel data that pack down to roughly 230 KB, so this is by far the biggest
+         single saving available. Costs a little extra time on the very first launch while
+         the bundle is unpacked. -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+
+    <!-- Debug info stays available for readable stack traces, but lives inside the exe so
+         no loose .pdb has to be shipped next to it. -->
+    <DebugType>embedded</DebugType>
+
+    <!-- Drops the localised resource assemblies that dependencies bring along; the app is
+         English only. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ProtectedData is genuinely a separate package on .NET; ZipFile is not — it ships with
+         the framework, and the old compatibility package only pulled in extra facades. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\appicon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\hekate_ipl.ini">
+      <LogicalName>hekate_ipl.ini</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\hekate_ipl_extra.ini">
+      <LogicalName>hekate_ipl_extra.ini</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\bootloader_res\icon_payload.bmp">
+      <LogicalName>icon_payload.bmp</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\bootloader_res\icon_switch.bmp">
+      <LogicalName>icon_switch.bmp</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\bootloader_res\icon_payload_nokip.bmp">
+      <LogicalName>icon_payload_nokip.bmp</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\bootloader_res\lockpick.bmp">
+      <LogicalName>lockpick.bmp</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\wallpapers\wallpaper_circles.rgba">
+      <LogicalName>wallpaper_circles.rgba</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\wallpapers\wallpaper_squares.rgba">
+      <LogicalName>wallpaper_squares.rgba</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\wallpapers\wallpaper_triangles.rgba">
+      <LogicalName>wallpaper_triangles.rgba</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\bootloader_res\tegra.bmp">
+      <LogicalName>tegra.bmp</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>
