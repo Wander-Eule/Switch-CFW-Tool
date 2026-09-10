@@ -1,14 +1,8 @@
 # Switch-CFW-Tool
 
-Windows-Tool (C# / WPF, .NET 8) zum Zusammenstellen von Custom Firmware für die Nintendo
-Switch aus offiziellen Homebrew-GitHub-Releases. Wählt Tools per Checkbox aus, lädt sie
-herunter und ordnet sie in die korrekte SD-Karten-Struktur — entweder als fertiger
-`SDMC`-Ordner zum Kopieren oder direkt auf eine ausgewählte SD-Karte.
-
-Zusätzlich: Verwaltung bestehender Installationen (updaten/deinstallieren), optische
-Anpassung von Ultrahand und Hekate, geführte Einführung für neue Nutzer.
-
-Ausführliche Architektur- und Entscheidungsdokumentation: [PROJEKT-DOKUMENTATION.md](PROJEKT-DOKUMENTATION.md).
+Windows-Tool (C# / WPF, .NET 8) zum automatischen Zusammenstellen eines fertigen
+`SDMC`-Ordners aus Hekate, Atmosphère, sys-patch und weiteren Homebrew-Tools, oder zum
+direkten Aktualisieren einer bestehenden SD-Karte.
 
 ## Bauen
 
