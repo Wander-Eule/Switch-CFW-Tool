@@ -11,3 +11,6 @@ obj/
 
 # Marker file created next to the exe once the Quick Tour has been offered
 quicktour.done
+
+# Internal dev notes — kept locally, not published
+PROJEKT-DOKUMENTATION.md
