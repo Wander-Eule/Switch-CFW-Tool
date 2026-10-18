@@ -20,11 +20,12 @@ public static class UltrahandWallpaper
     private const string LibraryFolder = "config/ultrahand/wallpapers";
     private const string ActiveFile = "config/ultrahand/wallpaper.rgba";
 
-    public static readonly (string Resource, string Label)[] Bundled =
+    /// <summary>The bundled files, each with the language key of the name shown in the picker.</summary>
+    public static readonly (string Resource, string LabelKey)[] Bundled =
     {
-        ("wallpaper_circles.rgba", "Circles"),
-        ("wallpaper_squares.rgba", "Squares"),
-        ("wallpaper_triangles.rgba", "Triangles"),
+        ("wallpaper_circles.rgba", "Theming.Wallpaper.Circles"),
+        ("wallpaper_squares.rgba", "Theming.Wallpaper.Squares"),
+        ("wallpaper_triangles.rgba", "Theming.Wallpaper.Triangles"),
     };
 
     /// <summary>Turns the raw pixel data into something WPF can show.</summary>

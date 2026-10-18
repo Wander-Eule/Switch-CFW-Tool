@@ -26,12 +26,12 @@ public partial class GitHubLoginWindow : Window
     {
         if (_github.IsAuthenticated)
         {
-            StatusText.Text = "✓ Logged in — using the 5,000 requests/hour limit.";
+            StatusText.Text = Loc.T("GitHub.Status.LoggedIn");
             StatusText.Foreground = SuccessBrush;
         }
         else
         {
-            StatusText.Text = "Not logged in — using the 60 requests/hour limit.";
+            StatusText.Text = Loc.T("GitHub.Status.LoggedOut");
             StatusText.Foreground = MutedBrush;
         }
     }
@@ -41,8 +41,8 @@ public partial class GitHubLoginWindow : Window
         var token = TokenBox.Password.Trim();
         if (string.IsNullOrEmpty(token))
         {
-            MessageDialog.Show(this, "GitHub Token", "No token entered",
-                "Paste a token first, or use Log Out to remove a saved one.");
+            MessageDialog.Show(this, Loc.T("GitHub.Title"), Loc.T("GitHub.NoToken.Headline"),
+                Loc.T("GitHub.NoToken.Message"));
             return;
         }
 

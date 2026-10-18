@@ -14,6 +14,7 @@
         <SolidColorBrush x:Key="MutedBrush" Color="#9A9AB8"/>
         <SolidColorBrush x:Key="TealBrush" Color="#2DD4BF"/>
         <SolidColorBrush x:Key="PurpleBrush" Color="#A78BFA"/>
+        <SolidColorBrush x:Key="GreenBrush" Color="#4ADE9E"/>
         <SolidColorBrush x:Key="InfoBrush" Color="#FFC86B"/>
 
         <LinearGradientBrush x:Key="WindowBackground" StartPoint="0,0" EndPoint="1,1">

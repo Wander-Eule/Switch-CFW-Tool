@@ -122,14 +122,14 @@ public partial class ThemingWindow : Window
 
     private void LoadWallpapers()
     {
-        foreach (var (resource, label) in UltrahandWallpaper.Bundled)
+        foreach (var (resource, labelKey) in UltrahandWallpaper.Bundled)
         {
             try
             {
                 _wallpapers.Add(new WallpaperItem
                 {
                     Resource = resource,
-                    Label = label,
+                    Label = Loc.T(labelKey),
                     Preview = UltrahandWallpaper.LoadPreview(resource)
                 });
             }
@@ -184,7 +184,7 @@ public partial class ThemingWindow : Window
         }
         catch (Exception ex)
         {
-            MessageDialog.Show(this, "Theming", "Could not apply the wallpaper", ex.Message);
+            MessageDialog.Show(this, Loc.T("Theming.Title"), Loc.T("Theming.Error.ApplyWallpaper"), ex.Message);
         }
     }
 
@@ -390,7 +390,7 @@ public partial class ThemingWindow : Window
 
     private void BrowseSd_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "Select the root of your SD card" };
+        var dialog = new OpenFolderDialog { Title = Loc.T("Common.SelectSdRoot") };
         if (dialog.ShowDialog() != true) return;
 
         SdPathBox.Text = dialog.FolderName;
@@ -404,8 +404,8 @@ public partial class ThemingWindow : Window
     {
         if (!string.IsNullOrWhiteSpace(SdRoot) && Directory.Exists(SdRoot)) return true;
 
-        MessageDialog.Show(this, "Theming", "No SD card selected",
-            "Choose the root of your SD card at the top of this window first.");
+        MessageDialog.Show(this, Loc.T("Theming.Title"), Loc.T("Common.NoSdCard.Headline"),
+            Loc.T("Theming.NoSdCard.Message"));
         return false;
     }
 
@@ -418,13 +418,12 @@ public partial class ThemingWindow : Window
             var name = ThemeNameBox.Text.Trim();
             UltrahandTheme.Save(SdRoot, name, _values);
 
-            MessageDialog.Show(this, "Theming", "Theme saved",
-                $"Saved to {UltrahandTheme.RelativeFolder}/{name}.ini on your SD card.\n\n"
-                + "Select it on the console under Ultrahand → Settings → Theme.");
+            MessageDialog.Show(this, Loc.T("Theming.Title"), Loc.T("Theming.Saved.Headline"),
+                Loc.T("Theming.Saved.Message", $"{UltrahandTheme.RelativeFolder}/{name}.ini"));
         }
         catch (Exception ex)
         {
-            MessageDialog.Show(this, "Theming", "Could not save the theme", ex.Message);
+            MessageDialog.Show(this, Loc.T("Theming.Title"), Loc.T("Theming.Error.SaveTheme"), ex.Message);
         }
     }
 
@@ -434,8 +433,9 @@ public partial class ThemingWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Choose a background image",
-            Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|All files|*.*"
+            Title = Loc.T("Theming.Hekate.PickerTitle"),
+            Filter = Loc.T("Theming.Hekate.FilterImages") + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|"
+                   + Loc.T("Theming.Hekate.FilterAll") + "|*.*"
         };
         if (dialog.ShowDialog() != true) return;
 
@@ -452,11 +452,11 @@ public partial class ThemingWindow : Window
             WallpaperHint.Visibility = Visibility.Collapsed;
 
             WallpaperStatus.Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0x9A, 0xB8));
-            WallpaperStatus.Text = $"{bitmap.PixelWidth} x {bitmap.PixelHeight} — will be scaled and cropped to 1280 x 720.";
+            WallpaperStatus.Text = Loc.T("Theming.Hekate.ImageInfo", bitmap.PixelWidth, bitmap.PixelHeight);
         }
         catch (Exception ex)
         {
-            MessageDialog.Show(this, "Theming", "Could not load that image", ex.Message);
+            MessageDialog.Show(this, Loc.T("Theming.Title"), Loc.T("Theming.Error.LoadImage"), ex.Message);
         }
     }
 
@@ -466,8 +466,8 @@ public partial class ThemingWindow : Window
 
         if (_wallpaper == null)
         {
-            MessageDialog.Show(this, "Theming", "No image chosen",
-                "Pick an image first with Choose Image.");
+            MessageDialog.Show(this, Loc.T("Theming.Title"), Loc.T("Theming.NoImage.Headline"),
+                Loc.T("Theming.NoImage.Message"));
             return;
         }
 
@@ -477,11 +477,11 @@ public partial class ThemingWindow : Window
             HekateWallpaper.Save(_wallpaper, target);
 
             WallpaperStatus.Foreground = new SolidColorBrush(Color.FromRgb(0x4A, 0xDE, 0x9E));
-            WallpaperStatus.Text = "Saved to bootloader/res/background.bmp";
+            WallpaperStatus.Text = Loc.T("Theming.Hekate.Saved");
         }
         catch (Exception ex)
         {
-            MessageDialog.Show(this, "Theming", "Could not write the wallpaper", ex.Message);
+            MessageDialog.Show(this, Loc.T("Theming.Title"), Loc.T("Theming.Error.WriteWallpaper"), ex.Message);
         }
     }
 

@@ -20,6 +20,10 @@ dotnet publish -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=
 
 The `.exe` then ends up at `bin/Release/net8.0-windows/win-x64/publish/Switch-CFW-Tool.exe`.
 
+For a release, run `build-release.cmd` (double-click) instead. It publishes as above and packs the
+result into `release/Switch-CFW-Tool-v<Version>.zip`, containing a `Switch CFW Tool` folder with
+the `.exe` and `LICENSE`. The version comes from `<Version>` in `Switch-CFW-Tool.csproj`.
+
 ## Project structure
 
 - `Models/CfwTool.cs` – description of a tool (name, author, repo, asset pattern, footprint, ...)
@@ -38,6 +42,7 @@ The `.exe` then ends up at `bin/Release/net8.0-windows/win-x64/publish/Switch-CF
 - `ManageCfwWindow.xaml(.cs)` – manage tools already installed on an SD card
 - `ThemingWindow.xaml(.cs)` – Ultrahand theme, Hekate background, wallpaper
 - `InfoWindow.xaml(.cs)` – Help → Info: credits for every included homebrew tool
+- `Localization/` – all user-facing text: `en.json` (reference) and one file per translation, loaded by `Loc.cs`
 
 ## Features
 
@@ -48,6 +53,15 @@ The `.exe` then ends up at `bin/Release/net8.0-windows/win-x64/publish/Switch-CF
 - Boot-integrity check after the build
 - Help → Log: shows/hides the output log (hidden by default)
 - Help → FAQ: placeholder window, content coming later
+- Language menu: English (default), Deutsch, Español, Français and Português (Brasil), switchable at runtime. The choice is remembered in `%AppData%\Switch-CFW-Tool\language.txt`; picking English again deletes that file. The Quick Tour marker and the GitHub token live in the same folder, so the program's own folder stays nothing but the exe and `LICENSE`
+
+## Translations
+
+Every text the program shows lives in `Localization/en.json`, keyed like `"Main.Build": "Build CFW"`.
+To add a language, copy `en.json` to `<code>.json` in the same folder (e.g. `it.json`), set
+`"_meta.languageName"` to the language's own name and translate the values. The file is embedded
+automatically and shows up in the Language menu after a rebuild. Keys a translation leaves out
+fall back to English; placeholders like `{0}` must stay as they are.
 
 ## Worth checking before the first real run
 

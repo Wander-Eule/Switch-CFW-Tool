@@ -162,7 +162,7 @@ public class QuickTour
 
         var hint = new TextBlock
         {
-            Text = "Click anywhere to continue  ·  Esc to skip",
+            Text = Loc.T("Tour.Hint"),
             Foreground = Muted,
             FontSize = 10.5,
             Margin = new Thickness(0, 10, 0, 0),
@@ -237,7 +237,7 @@ public class QuickTour
         _ring.Width = hole.Width;
         _ring.Height = hole.Height;
 
-        _counter.Text = $"STEP {_index + 1} OF {_steps.Count}";
+        _counter.Text = Loc.T("Tour.Counter", _index + 1, _steps.Count);
         _body.Text = step.Text;
 
         PlaceToast(hole, size);

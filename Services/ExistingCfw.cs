@@ -16,12 +16,14 @@ public record ExistingCfwInfo(bool Found, List<string> Parts);
 /// </summary>
 public static class ExistingCfw
 {
-    private static readonly (string Path, bool IsDirectory, string Name)[] Landmarks =
+    // The name is a language key; it is resolved when detected, so it reads in the language
+    // that is active at that moment.
+    private static readonly (string Path, bool IsDirectory, string NameKey)[] Landmarks =
     {
-        ("atmosphere/package3", false, "Atmosphère"),
-        ("bootloader/sys", true, "Hekate"),
-        ("atmosphere/contents", true, "sysmodules"),
-        ("payload.bin", false, "a boot payload"),
+        ("atmosphere/package3", false, "ExistingCfw.Atmosphere"),
+        ("bootloader/sys", true, "ExistingCfw.Hekate"),
+        ("atmosphere/contents", true, "ExistingCfw.Sysmodules"),
+        ("payload.bin", false, "ExistingCfw.Payload"),
     };
 
     public static ExistingCfwInfo Detect(string cardRoot)
@@ -36,7 +38,7 @@ public static class ExistingCfw
                 ? Directory.Exists(full) && Directory.EnumerateFileSystemEntries(full).Any()
                 : File.Exists(full);
 
-            if (present) found.Add(name);
+            if (present) found.Add(Loc.T(name));
         }
 
         return new ExistingCfwInfo(found.Count > 0, found);

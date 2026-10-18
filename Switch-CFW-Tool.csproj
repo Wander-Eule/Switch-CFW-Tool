@@ -10,6 +10,9 @@
     <RootNamespace>SwitchCfwTool</RootNamespace>
     <ApplicationIcon>Assets\appicon.ico</ApplicationIcon>
 
+    <!-- Shown in the exe's file properties and used by build-release.ps1 for the zip name. -->
+    <Version>1.1</Version>
+
     <!-- Self contained publish settings so end users don't need the .NET runtime installed.
          Build with: dotnet publish -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -->
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
@@ -27,8 +30,9 @@
          no loose .pdb has to be shipped next to it. -->
     <DebugType>embedded</DebugType>
 
-    <!-- Drops the localised resource assemblies that dependencies bring along; the app is
-         English only. -->
+    <!-- Drops the localised resource assemblies that dependencies bring along. The app's own
+         translations don't use satellite assemblies — they are the JSON files in
+         Localization/, embedded below — so this doesn't affect them. -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
@@ -40,6 +44,15 @@
 
   <ItemGroup>
     <Resource Include="Assets\appicon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- One JSON file per language; every file placed in Localization/ is offered in the
+         Language menu automatically (see Localization/Loc.cs). -->
+    <None Remove="Localization\*.json" />
+    <EmbeddedResource Include="Localization\*.json">
+      <LogicalName>lang.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

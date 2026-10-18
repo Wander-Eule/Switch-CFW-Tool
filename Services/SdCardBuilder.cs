@@ -97,7 +97,7 @@ public class SdCardBuilder
             // Raw single-file download (.ovl / .bin / .nro / .kip).
             var file = Path.Combine(stagedPath, stagedFileName);
             if (!File.Exists(file))
-                throw new FileNotFoundException($"Downloaded file '{stagedFileName}' not found in staging folder.");
+                throw new FileNotFoundException(Loc.T("Error.Build.StagedFileMissing", stagedFileName));
 
             RouteLooseFile(file, tool, log);
             return;
@@ -116,7 +116,7 @@ public class SdCardBuilder
             var target = Path.Combine(_sdRoot, tool.ArchiveSubfolder);
             Directory.CreateDirectory(target);
             MergeDirectory(root, target);
-            log($"merged archive into {tool.ArchiveSubfolder}/");
+            log(Loc.T("Log.Build.MergedIntoSubfolder", tool.ArchiveSubfolder));
         }
         else if (LooksLikeSdRoot(root))
         {
@@ -126,7 +126,7 @@ public class SdCardBuilder
         else
         {
             // No recognizable SD layout — treat whatever is inside as loose files.
-            log("archive has no SD-root folders; routing its files by type");
+            log(Loc.T("Log.Build.NoSdRoot"));
             foreach (var file in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
                 RouteLooseFile(file, tool, log);
         }
@@ -152,7 +152,7 @@ public class SdCardBuilder
                     if (File.Exists(target)) File.Delete(target);
                     File.Move(payloadBin, target);
                     Record(target);
-                    log("renamed Hekate payload to payload.bin");
+                    log(Loc.T("Log.Build.HekatePayloadRenamed"));
                 }
                 break;
 
@@ -169,7 +169,7 @@ public class SdCardBuilder
                     if (File.Exists(exoTarget)) File.Delete(exoTarget);
                     File.Move(stray, exoTarget);
                     Record(exoTarget);
-                    log("moved exosphere.bin to atmosphere/");
+                    log(Loc.T("Log.Build.ExosphereMoved"));
                 }
                 break;
         }
@@ -195,7 +195,7 @@ public class SdCardBuilder
 
         if (relativeDir == "")
         {
-            log($"skipped '{name}' (unrecognized file type)");
+            log(Loc.T("Log.Build.SkippedUnknownType", name));
             return;
         }
 
@@ -204,7 +204,7 @@ public class SdCardBuilder
         var dest = Path.Combine(targetDir, name);
         File.Copy(file, dest, overwrite: true);
         Record(dest);
-        log($"placed '{name}' in {relativeDir.Replace('\\', '/')}/");
+        log(Loc.T("Log.Build.Placed", name, relativeDir.Replace('\\', '/')));
 
         // Older layouts — and other installers — drop the .nro straight into switch/. Leaving
         // that copy behind would show the tool twice in the console's menu, one of them stale.
@@ -219,7 +219,7 @@ public class SdCardBuilder
             try
             {
                 File.Delete(stale);
-                log($"removed the older copy at switch/{Path.GetFileName(stale)}");
+                log(Loc.T("Log.Build.RemovedOldCopy", Path.GetFileName(stale)));
             }
             catch
             {
@@ -234,7 +234,7 @@ public class SdCardBuilder
             if (File.Exists(sameName))
             {
                 File.Delete(sameName);
-                log($"removed the older copy at switch/{installedName}");
+                log(Loc.T("Log.Build.RemovedOldCopy", installedName));
             }
         }
         catch
@@ -262,7 +262,7 @@ public class SdCardBuilder
             var sdLike = dirs.Where(LooksLikeSdRoot).ToArray();
             if (sdLike.Length == 1)
             {
-                log($"unwrapped '{Path.GetFileName(sdLike[0])}' folder from archive");
+                log(Loc.T("Log.Build.Unwrapped", Path.GetFileName(sdLike[0])));
                 return sdLike[0];
             }
 
@@ -275,7 +275,7 @@ public class SdCardBuilder
             if (dirs.Length == 1 && meaningfulFiles.Length == 0)
             {
                 current = dirs[0];
-                log($"unwrapped '{Path.GetFileName(current)}' folder from archive");
+                log(Loc.T("Log.Build.Unwrapped", Path.GetFileName(current)));
                 continue;
             }
 
