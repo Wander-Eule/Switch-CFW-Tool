@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using SwitchCfwTool.Models;
@@ -16,10 +17,16 @@ public class GitHubService
 {
     private readonly HttpClient _http;
 
+    // Read from the assembly rather than written out, so it can't drift from <Version> in the
+    // .csproj the way a hard-coded string does. GitHub requires a User-Agent but doesn't care
+    // what it says, so a missing version simply falls back to something harmless.
+    private static readonly string AppVersion =
+        Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "1";
+
     public GitHubService()
     {
         _http = new HttpClient();
-        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SwitchCfwTool", "1.0"));
+        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SwitchCfwTool", AppVersion));
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
     }
 
@@ -75,12 +82,12 @@ public class GitHubService
             && long.TryParse(resetHeader.FirstOrDefault(), out var resetUnix))
         {
             var resetTime = DateTimeOffset.FromUnixTimeSeconds(resetUnix).ToLocalTime();
-            return $"GitHub API rate limit reached (60 requests/hour without login) — resets at {resetTime:HH:mm}. Wait until then and try again.";
+            return Loc.T("Error.GitHub.RateLimit", resetTime.ToString("HH:mm"));
         }
 
         var body = await resp.Content.ReadAsStringAsync(ct);
         if (body.Length > 200) body = body[..200] + "...";
-        return $"GitHub API request failed ({(int)resp.StatusCode} {resp.ReasonPhrase}): {body}";
+        return Loc.T("Error.GitHub.RequestFailed", $"{(int)resp.StatusCode} {resp.ReasonPhrase}", body);
     }
 
     /// <summary>
@@ -96,7 +103,7 @@ public class GitHubService
     public static GitHubAsset? SelectAsset(GitHubRelease release, string? pattern, bool preferHighestVersion = false)
     {
         if (release.Assets.Count == 0)
-            throw new InvalidOperationException($"Release '{release.TagName}' has no downloadable assets.");
+            throw new InvalidOperationException(Loc.T("Error.GitHub.NoAssets", release.TagName));
 
         if (string.IsNullOrEmpty(pattern))
             return release.Assets[0];
@@ -119,7 +126,7 @@ public class GitHubService
 
         var available = string.Join(", ", release.Assets.Select(a => a.Name));
         throw new InvalidOperationException(
-            $"No asset in release '{release.TagName}' matches the pattern '{pattern}'. Available assets: {available}");
+            Loc.T("Error.GitHub.PatternMismatch", release.TagName, pattern, available));
     }
 
     /// <summary>Pulls the version out of a filename as a list of numbers, e.g. "845.en.nro" → [845].</summary>

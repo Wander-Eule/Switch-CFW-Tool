@@ -43,7 +43,7 @@ public class ToolInstaller
     public async Task<bool> InstallAsync(CfwTool tool, string? pinnedUrl, string? pinnedFileName,
         string? pinnedVersion, bool downloadOptionalExtra)
     {
-        _log($"[{tool.DisplayName}] Resolving download...", LogKind.Normal);
+        _log(Loc.T("Log.Install.Resolving", tool.DisplayName), LogKind.Normal);
 
         try
         {
@@ -60,9 +60,9 @@ public class ToolInstaller
             else
             {
                 var release = await _github.GetLatestReleaseAsync(tool.GitHubRepo!)
-                    ?? throw new InvalidOperationException("GitHub returned an empty response for the latest release.");
+                    ?? throw new InvalidOperationException(Loc.T("Error.GitHub.EmptyLatestRelease"));
                 var asset = GitHubService.SelectAsset(release, tool.AssetNamePattern, tool.VersionFromAssetName)
-                    ?? throw new InvalidOperationException("No matching asset found in the latest release.");
+                    ?? throw new InvalidOperationException(Loc.T("Error.GitHub.NoAssetInLatest"));
 
                 url = asset.BrowserDownloadUrl;
                 fileName = asset.Name;
@@ -70,12 +70,12 @@ public class ToolInstaller
             }
 
             var progress = new Progress<DownloadProgress>(p =>
-                _log($"[{tool.DisplayName}] {p.Stage}: {p.Message}", LogKind.Normal));
+                _log($"[{tool.DisplayName}] {Loc.T("Log.Stage." + p.Stage)}: {p.Message}", LogKind.Normal));
 
             var staged = await _downloader.DownloadAndStageAsync(tool.Id, url, fileName, progress);
             _builder.MergeTool(tool, staged, fileName, detail => _log($"[{tool.DisplayName}] {detail}", LogKind.Normal));
 
-            _log($"[{tool.DisplayName}] Merged into SDMC folder.", LogKind.Success);
+            _log(Loc.T("Log.Install.Merged", tool.DisplayName), LogKind.Success);
 
             InstallManifest.Upsert(_sdRoot, new InstallRecord
             {
@@ -95,7 +95,7 @@ public class ToolInstaller
         }
         catch (Exception ex)
         {
-            _log($"[{tool.DisplayName}] ERROR: {ex.Message} — skipping this tool.", LogKind.Error);
+            _log(Loc.T("Log.Install.ToolFailed", tool.DisplayName, ex.Message), LogKind.Error);
             return false;
         }
     }
@@ -107,12 +107,12 @@ public class ToolInstaller
         {
             try
             {
-                _log($"[{companion.DisplayName}] Resolving companion download...", LogKind.Normal);
+                _log(Loc.T("Log.Install.ResolvingCompanion", companion.DisplayName), LogKind.Normal);
 
                 var release = await _github.GetLatestReleaseAsync(companion.GitHubRepo)
-                    ?? throw new InvalidOperationException("GitHub returned an empty response.");
+                    ?? throw new InvalidOperationException(Loc.T("Error.GitHub.EmptyResponse"));
                 var asset = GitHubService.SelectAsset(release, companion.AssetNamePattern)
-                    ?? throw new InvalidOperationException("No matching asset found.");
+                    ?? throw new InvalidOperationException(Loc.T("Error.GitHub.NoAsset"));
 
                 var staged = await _downloader.DownloadAndStageAsync(
                     tool.Id + "-" + companion.DisplayName, asset.BrowserDownloadUrl, asset.Name);
@@ -123,18 +123,17 @@ public class ToolInstaller
                     Id = "companion-" + companion.DisplayName,
                     Author = companion.Author,
                     DisplayName = companion.DisplayName,
-                    Description = "",
                     GitHubRepo = companion.GitHubRepo
                 };
 
                 _builder.MergeTool(pseudo, staged, asset.Name,
                     detail => _log($"[{companion.DisplayName}] {detail}", LogKind.Normal));
 
-                _log($"[{companion.DisplayName}] Added alongside {tool.DisplayName}.", LogKind.Success);
+                _log(Loc.T("Log.Install.CompanionAdded", companion.DisplayName, tool.DisplayName), LogKind.Success);
             }
             catch (Exception ex)
             {
-                _log($"[{companion.DisplayName}] ERROR: {ex.Message} — skipping this companion.", LogKind.Error);
+                _log(Loc.T("Log.Install.CompanionFailed", companion.DisplayName, ex.Message), LogKind.Error);
             }
         }
     }
@@ -147,9 +146,9 @@ public class ToolInstaller
         try
         {
             var release = await _github.GetLatestReleaseAsync(extra.GitHubRepo)
-                ?? throw new InvalidOperationException("GitHub returned an empty response.");
+                ?? throw new InvalidOperationException(Loc.T("Error.GitHub.EmptyResponse"));
             var asset = GitHubService.SelectAsset(release, extra.AssetNamePattern)
-                ?? throw new InvalidOperationException("No matching asset found.");
+                ?? throw new InvalidOperationException(Loc.T("Error.GitHub.NoAsset"));
 
             var staged = await _downloader.DownloadAndStageAsync(
                 tool.Id + "-extra", asset.BrowserDownloadUrl, asset.Name);
@@ -159,11 +158,11 @@ public class ToolInstaller
             Directory.CreateDirectory(targetDir);
             File.Copy(Path.Combine(staged, asset.Name), Path.Combine(targetDir, asset.Name), overwrite: true);
 
-            _log($"[{tool.DisplayName}] {asset.Name} saved to \"{targetDir}\".", LogKind.Success);
+            _log(Loc.T("Log.Install.ExtraSaved", tool.DisplayName, asset.Name, targetDir), LogKind.Success);
         }
         catch (Exception ex)
         {
-            _log($"[{tool.DisplayName}] ERROR: could not download the optional extra: {ex.Message}", LogKind.Error);
+            _log(Loc.T("Log.Install.ExtraFailed", tool.DisplayName, ex.Message), LogKind.Error);
         }
     }
 

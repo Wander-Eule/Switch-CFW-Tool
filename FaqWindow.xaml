@@ -1,7 +1,8 @@
 <Window x:Class="SwitchCfwTool.FaqWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="FAQ" Height="520" Width="440"
+        xmlns:l="clr-namespace:SwitchCfwTool.Localization"
+        Title="{l:Tr Faq.Title}" Height="520" Width="440"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextBrush}"
@@ -18,11 +19,11 @@
                 Padding="16,14">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <TextBlock x:Name="FaqContent" TextWrapping="Wrap"
-                           Text="FAQ content coming soon."/>
+                           Text="{l:Tr Faq.Placeholder}"/>
             </ScrollViewer>
         </Border>
 
-        <Button Grid.Row="1" Content="Close" Style="{StaticResource PrimaryButton}"
+        <Button Grid.Row="1" Content="{l:Tr Common.Close}" Style="{StaticResource PrimaryButton}"
                 HorizontalAlignment="Right" Padding="20,7" Margin="0,16,0,0" Click="Close_Click"/>
     </Grid>
 </Window>

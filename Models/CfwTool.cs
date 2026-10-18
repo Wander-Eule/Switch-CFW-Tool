@@ -13,8 +13,11 @@ public class CfwTool
     /// <summary>Display name shown next to the checkbox.</summary>
     public required string DisplayName { get; init; }
 
-    /// <summary>Tooltip text shown on hover, describing what the tool does.</summary>
-    public required string Description { get; init; }
+    /// <summary>
+    /// Tooltip text shown on hover, describing what the tool does. Lives in the language files
+    /// under "Tool.&lt;Id&gt;.Description" so it can be translated like everything else.
+    /// </summary>
+    public string Description => Loc.T($"Tool.{Id}.Description");
 
     /// <summary>Developer/maintainer credit shown in the Help → Info window.</summary>
     public required string Author { get; init; }
@@ -83,8 +86,11 @@ public class CfwTool
     /// </summary>
     public string[] ConflictsWith { get; init; } = Array.Empty<string>();
 
-    /// <summary>Shown in the warning dialog when a conflict is hit. Null uses a generic message.</summary>
-    public string? ConflictReason { get; init; }
+    /// <summary>
+    /// Shown in the warning dialog when a conflict is hit, from "Tool.&lt;Id&gt;.ConflictReason"
+    /// in the language files. Null (no such key) uses a generic message.
+    /// </summary>
+    public string? ConflictReason => Loc.TryT($"Tool.{Id}.ConflictReason");
 
     /// <summary>
     /// Extra downloads pulled in automatically whenever this tool is selected, for pieces
@@ -94,6 +100,12 @@ public class CfwTool
 
     /// <summary>An extra the user is asked about before it is downloaded. Null = nothing to ask.</summary>
     public OptionalExtra? OptionalExtra { get; init; }
+
+    /// <summary>
+    /// Shown when the tool is ticked, for tools that need an account before they can be used.
+    /// Null = no notice.
+    /// </summary>
+    public AccountNotice? AccountNotice { get; init; }
 
     /// <summary>
     /// Where an archive's contents belong when it doesn't already contain SD-root folders —
@@ -114,6 +126,24 @@ public class CompanionDownload
     public required string Author { get; init; }
 }
 
+/// <summary>A notice that a tool needs an account, with a link to where one is made.</summary>
+public class AccountNotice
+{
+    public required string Url { get; init; }
+
+    /// <summary>
+    /// Prefix of the texts in the language files, e.g. "Tool.nextendo.Account" for
+    /// ".Headline", ".Reason", ".Question", ".Register" and ".HaveOne".
+    /// </summary>
+    public required string TextKey { get; init; }
+
+    public string Headline => Loc.T(TextKey + ".Headline");
+    public string Reason => Loc.T(TextKey + ".Reason");
+    public string Question => Loc.T(TextKey + ".Question");
+    public string RegisterLabel => Loc.T(TextKey + ".Register");
+    public string HaveAccountLabel => Loc.T(TextKey + ".HaveOne");
+}
+
 /// <summary>
 /// An optional companion file the user is prompted about, for things that aren't needed by
 /// everyone and shouldn't be downloaded silently (e.g. Goldleaf's desktop-side Quark.jar).
@@ -122,11 +152,18 @@ public class OptionalExtra
 {
     public required string GitHubRepo { get; init; }
     public required string AssetNamePattern { get; init; }
-    public required string Headline { get; init; }
-    public required string Reason { get; init; }
-    public required string Question { get; init; }
-    public required string YesLabel { get; init; }
-    public required string NoLabel { get; init; }
+
+    /// <summary>
+    /// Prefix of the prompt's texts in the language files, e.g. "Tool.goldleaf.Extra" for
+    /// "Tool.goldleaf.Extra.Headline", ".Reason", ".Question", ".Yes" and ".No".
+    /// </summary>
+    public required string TextKey { get; init; }
+
+    public string Headline => Loc.T(TextKey + ".Headline");
+    public string Reason => Loc.T(TextKey + ".Reason");
+    public string Question => Loc.T(TextKey + ".Question");
+    public string YesLabel => Loc.T(TextKey + ".Yes");
+    public string NoLabel => Loc.T(TextKey + ".No");
 
     /// <summary>True = save beside the SDMC folder instead of inside it (PC-side files).</summary>
     public bool PlaceNextToSdmc { get; init; }

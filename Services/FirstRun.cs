@@ -10,44 +10,23 @@ namespace SwitchCfwTool.Services;
 /// process keeps nothing once it exits, and its own executable can't be modified while it
 /// runs. So a marker is unavoidable; the only real choice is where it lives.
 ///
-/// It is written next to the executable rather than in AppData on purpose: deleting the
-/// program folder then also removes the marker, so a fresh download offers the tour again,
-/// which is the behaviour asked for. AppData is used only as a fallback for the case where
-/// the program sits somewhere unwritable (a read-only share, Program Files without rights),
-/// since failing to write there would otherwise mean the prompt returns on every start.
+/// It goes in AppData, with the GitHub token and the language choice, so that the program's
+/// own folder stays nothing but the exe and the licence. The trade-off is deliberate: having
+/// already seen the tour is a fact about the person, not about one copy of the program, so
+/// updating or re-extracting doesn't replay it. Help → Quick Tour replays it on demand, which
+/// is a better way to get it back than deleting a file.
 /// </summary>
 public static class FirstRun
 {
-    private const string MarkerName = "quicktour.done";
-
-    private static string? NextToExecutable
-    {
-        get
-        {
-            try
-            {
-                var exe = Environment.ProcessPath;
-                var dir = exe == null ? null : Path.GetDirectoryName(exe);
-                return dir == null ? null : Path.Combine(dir, MarkerName);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-    }
-
-    private static string InAppData => Path.Combine(
+    private static readonly string MarkerPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "Switch-CFW-Tool", MarkerName);
+        "Switch-CFW-Tool", "quicktour.done");
 
     public static bool ShouldOfferTour()
     {
         try
         {
-            var local = NextToExecutable;
-            if (local != null && File.Exists(local)) return false;
-            return !File.Exists(InAppData);
+            return !File.Exists(MarkerPath);
         }
         catch
         {
@@ -58,35 +37,22 @@ public static class FirstRun
 
     public static void MarkOffered()
     {
-        var local = NextToExecutable;
-        if (local != null && TryWrite(local)) return;
-
-        TryWrite(InAppData);
-    }
-
-    private static bool TryWrite(string path)
-    {
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, string.Join(Environment.NewLine, new[]
+            Directory.CreateDirectory(Path.GetDirectoryName(MarkerPath)!);
+            File.WriteAllText(MarkerPath, string.Join(Environment.NewLine, new[]
             {
                 "Switch-CFW-Tool",
                 "",
                 "This file only records that the Quick Tour has already been offered.",
-                "Delete it to be asked again on the next start.",
-                "",
-                "Nothing else is stored here. A GitHub token entered under Debug > GitHub Token",
-                "is kept separately in:",
-                @"    %AppData%\Switch-CFW-Tool\github_token.bin",
-                "encrypted for the current Windows account, so it never travels with the",
-                "program if you pass the .exe on to someone else.",
+                "Delete it to be asked again on the next start, or just pick",
+                "Help > Quick Tour in the program.",
             }));
-            return true;
         }
         catch
         {
-            return false;
+            // Failing to write it only means the prompt comes back next start. Annoying,
+            // but not worth interrupting the launch over.
         }
     }
 }

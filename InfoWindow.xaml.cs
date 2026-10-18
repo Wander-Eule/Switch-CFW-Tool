@@ -37,17 +37,30 @@ public partial class InfoWindow : Window
 
         foreach (var tool in ToolCatalog.All)
         {
-            AddCreditLine(tool.DisplayName, tool.Author, nameRegex);
+            AddCreditLine(tool.DisplayName, LocalizeCredit(tool.Author), nameRegex);
 
             // Companions are separate projects by other people, so they get their own
             // credit line rather than being folded into the parent tool's.
             foreach (var companion in tool.Companions)
-                AddCreditLine(companion.DisplayName, companion.Author, nameRegex);
+                AddCreditLine(companion.DisplayName, LocalizeCredit(companion.Author), nameRegex);
         }
 
         // Not a downloaded tool, so it isn't in the catalog — the bundled Hekate boot icons
         // (Assets/bootloader_res) are from github.com/NicholeMattera/Hekate-Icons.
-        AddCreditLine("Icons", "NicholeMattera", nameRegex);
+        AddCreditLine(Loc.T("Info.Icons"), "NicholeMattera", nameRegex);
+    }
+
+    /// <summary>
+    /// Credit lines are written in English in the catalog ("X (fork by Y)", "A, B &amp; C").
+    /// Only the joining words are translated; the names themselves stay exactly as they are,
+    /// since they are what gets matched against <see cref="CreatorLinks"/>.
+    /// </summary>
+    private static string LocalizeCredit(string author)
+    {
+        return author
+            .Replace("(forks by ", "(" + Loc.T("Info.Credit.ForksBy") + " ")
+            .Replace("(fork by ", "(" + Loc.T("Info.Credit.ForkBy") + " ")
+            .Replace(" & ", " " + Loc.T("Info.Credit.And") + " ");
     }
 
     private void AddCreditLine(string displayName, string author, Regex nameRegex)

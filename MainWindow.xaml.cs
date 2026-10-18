@@ -67,6 +67,7 @@ public partial class MainWindow : Window
                     {
                         CheckConflicts(item);
                         AskAboutOptionalExtra(item);
+                        AskAboutAccountNotice(item);
                     }), DispatcherPriority.Background);
             };
         }
@@ -80,8 +81,53 @@ public partial class MainWindow : Window
         if (savedToken != null)
             _github.UseToken(savedToken);
 
+        BuildLanguageMenu();
+        Loc.LanguageChanged += OnLanguageChanged;
+
         // Deferred to Loaded so the window is laid out before the tour measures anything.
         Loaded += (_, _) => OfferQuickTourOnFirstRun();
+    }
+
+    /// <summary>
+    /// One entry per language file. Each is listed under its own name ("Português (Brasil)"
+    /// rather than a translation of it), so the way back is recognisable from any language.
+    /// </summary>
+    private void BuildLanguageMenu()
+    {
+        MenuLanguage.Items.Clear();
+
+        foreach (var language in Loc.Available)
+        {
+            var entry = new MenuItem
+            {
+                Header = language.Name,
+                Tag = language.Code,
+                IsCheckable = true,
+                IsChecked = language.Code == Loc.Current
+            };
+            entry.Click += (_, _) =>
+            {
+                Loc.SetLanguage(language.Code);
+
+                // A checkable item toggles itself on click, so clicking the active language
+                // would untick it; the ticks are always re-derived from what is in effect.
+                foreach (var item in MenuLanguage.Items.OfType<MenuItem>())
+                    item.IsChecked = (string)item.Tag == Loc.Current;
+            };
+            MenuLanguage.Items.Add(entry);
+        }
+    }
+
+    /// <summary>
+    /// Everything bound in XAML follows a switch by itself; this covers the few texts that are
+    /// set from code. Log lines already written stay as they are.
+    /// </summary>
+    private void OnLanguageChanged()
+    {
+        TargetKindLabel.Text = Loc.T(_writingIntoExistingCard ? "Main.Target.SdCard" : "Main.Target.PcFolder");
+
+        if (StatusText.Visibility == Visibility.Visible)
+            ShowBuildResult();
     }
 
     private async void VersionMode_Changed(object sender, RoutedEventArgs e)
@@ -129,7 +175,7 @@ public partial class MainWindow : Window
             }
             catch (Exception ex)
             {
-                Log($"[{item.Tool.DisplayName}] Could not read latest version: {ex.Message}", LogKind.Error);
+                Log(Loc.T("Log.Main.LatestVersionFailed", item.Tool.DisplayName, ex.Message), LogKind.Error);
             }
         }
     }
@@ -177,25 +223,25 @@ public partial class MainWindow : Window
         if (clash == null) return;
 
         var reason = item.Tool.ConflictReason ?? clash.Tool.ConflictReason
-            ?? "These two tools cover the same functionality and are not designed to run side by side.";
+            ?? Loc.T("Main.Conflict.GenericReason");
 
         var dialog = new ChoiceDialog(
-            $"{item.Tool.DisplayName} and {clash.Tool.DisplayName} may conflict",
+            Loc.T("Main.Conflict.Headline", item.Tool.DisplayName, clash.Tool.DisplayName),
             reason,
-            $"Remove {item.Tool.DisplayName} again?",
-            "Remove",
-            "Keep both") { Owner = this };
+            Loc.T("Main.Conflict.Question", item.Tool.DisplayName),
+            Loc.T("Main.Conflict.Remove"),
+            Loc.T("Main.Conflict.KeepBoth")) { Owner = this };
 
         if (dialog.ShowDialog() == true)
         {
             _resolvingConflict = true;
             item.IsSelected = false;
             _resolvingConflict = false;
-            Log($"{item.Tool.DisplayName} removed — conflicts with {clash.Tool.DisplayName}.", LogKind.Info);
+            Log(Loc.T("Log.Main.ConflictRemoved", item.Tool.DisplayName, clash.Tool.DisplayName), LogKind.Info);
         }
         else
         {
-            Log($"Warning: {item.Tool.DisplayName} and {clash.Tool.DisplayName} are both selected despite a known conflict.", LogKind.Info);
+            Log(Loc.T("Log.Main.ConflictKept", item.Tool.DisplayName, clash.Tool.DisplayName), LogKind.Info);
         }
     }
 
@@ -247,7 +293,7 @@ public partial class MainWindow : Window
             }
             catch (Exception ex)
             {
-                Log($"[{item.Tool.DisplayName}] Could not fetch release list: {ex.Message}", LogKind.Error);
+                Log(Loc.T("Log.Main.ReleaseListFailed", item.Tool.DisplayName, ex.Message), LogKind.Error);
             }
     }
 
@@ -255,7 +301,7 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Select your SD card, or a folder to build the CFW in"
+            Title = Loc.T("Main.Browse.Title")
         };
 
         if (dialog.ShowDialog() == true)
@@ -274,7 +320,7 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrEmpty(path))
         {
-            TargetKindLabel.Text = "PC FOLDER";
+            TargetKindLabel.Text = Loc.T("Main.Target.PcFolder");
             _writingIntoExistingCard = false;
             _askedAbout = null;
             return;
@@ -296,14 +342,11 @@ public partial class MainWindow : Window
 
                 var size = info.TotalBytes > 0 ? $"{info.TotalBytes / 1024 / 1024 / 1024} GB, " : "";
                 var answer = new ChoiceDialog(
-                    "Is this your SD card?",
-                    $"{path}  ({size}{info.FileSystem})\n\n"
-                    + "Windows doesn't report this drive as removable, which is normal for a built-in "
-                    + "card reader but also true of an internal disk. Choosing SD card writes the CFW "
-                    + "straight into this drive's root.",
-                    "Treat it as your SD card?",
-                    "SD Card",
-                    "PC Folder") { Owner = this };
+                    Loc.T("Main.AskCard.Headline"),
+                    $"{path}  ({size}{info.FileSystem})\n\n" + Loc.T("Main.AskCard.Reason"),
+                    Loc.T("Main.AskCard.Question"),
+                    Loc.T("Main.AskCard.SdCard"),
+                    Loc.T("Main.AskCard.PcFolder")) { Owner = this };
 
                 SetCardTarget(answer.ShowDialog() == true, info);
                 break;
@@ -320,14 +363,13 @@ public partial class MainWindow : Window
     private void SetCardTarget(bool isCard, TargetInfo info)
     {
         _writingIntoExistingCard = isCard;
-        TargetKindLabel.Text = isCard ? "SD CARD" : "PC FOLDER";
+        TargetKindLabel.Text = Loc.T(isCard ? "Main.Target.SdCard" : "Main.Target.PcFolder");
 
         if (!isCard) return;
 
         if (!TargetDetection.IsSwitchCompatible(info.FileSystem))
         {
-            Log($"Note: this drive is formatted {info.FileSystem}. A Switch reads FAT32 (and exFAT with "
-                + "the extra driver); anything else will not be recognised.", LogKind.Info);
+            Log(Loc.T("Log.Main.FileSystemWarning", info.FileSystem), LogKind.Info);
         }
 
         WarnIfCardAlreadySetUp(OutputPathBox.Text.Trim());
@@ -352,13 +394,10 @@ public partial class MainWindow : Window
             var known = InstallManifest.Load(cardRoot).Count > 0;
 
             new MessageDialog(
-                "Existing CFW found",
-                "This card already has a CFW on it",
-                $"{string.Join(", ", existing.Parts)} are already installed.\n\n"
-                + (known
-                    ? "It was set up with this program, so building will simply update the tools you select."
-                    : "It was not set up with this program, so nothing here knows which files belong to which tool. "
-                    + "Building will overwrite anything with the same name; your own settings files are left alone.")
+                Loc.T("Main.ExistingCfw.Title"),
+                Loc.T("Main.ExistingCfw.Headline"),
+                Loc.T("Main.ExistingCfw.Found", string.Join(", ", existing.Parts)) + "\n\n"
+                + Loc.T(known ? "Main.ExistingCfw.Known" : "Main.ExistingCfw.Unknown")
                 ) { Owner = this }.ShowDialog();
         }
         catch
@@ -420,15 +459,12 @@ public partial class MainWindow : Window
         new TourStep
         {
             Target = () => VersionPanel,
-            Text = "First choose, if you want the \"Latest\" versions of each tool, or pick specific "
-                 + "versions yourself with \"Custom\". We recommend using \"Latest\"."
+            Text = Loc.T("Tour.Version")
         },
         new TourStep
         {
             Target = () => MmcPanel,
-            Text = "Then choose whether you want to run your Switch in EmuMMC or SysMMC. EmuMMC is the "
-                 + "safer option. Either way, the tool will block Nintendo servers on the one that "
-                 + "you select to avoid a ban!"
+            Text = Loc.T("Tour.Mmc")
         },
         new TourStep
         {
@@ -438,49 +474,37 @@ public partial class MainWindow : Window
             MaxHeight = 178,
             MaxWidth = 46,
             PaddingX = -3,
-            Text = "Now pick the Homebrew Tools you want to install. As a minimum install to be ready "
-                 + "to go for most situations we recommend: Hekate, Atmosphère, SYS-Patch, "
-                 + "Lockpick RCM and DBI or Goldleaf. The bare minimum you'll need is Hekate "
-                 + "(Custom Bootloader) and Atmosphère (Custom Firmware)."
+            Text = Loc.T("Tour.Tools")
         },
         new TourStep
         {
             Target = () => OutputRow,
-            Text = "Then pick where the CFW should go. Choose your SD card and everything is written "
-                 + "straight onto it. Choose a folder instead and an SDMC folder is created, whose "
-                 + "contents you copy to the root of your SD card yourself."
+            Text = Loc.T("Tour.Output")
         },
         new TourStep
         {
             Target = () => BuildButton,
-            Text = "Then press Build CFW. Everything you selected is downloaded from its official "
-                 + "repository and arranged into the right folder structure for you."
+            Text = Loc.T("Tour.Build")
         },
         new TourStep
         {
             Target = () => MenuFile,
-            Text = "File opens Manage CFW, which lists every tool: install ones you don't have yet, "
-                 + "reinstall or remove the ones you do. Only builds made with this program can be "
-                 + "managed there, since a card set up by hand carries no record of which files "
-                 + "belong to which tool."
+            Text = Loc.T("Tour.File")
         },
         new TourStep
         {
             Target = () => MenuInfo,
-            Text = "Info holds the credits for every homebrew developer, and lets you show the "
-                 + "output log if you want to watch what a build is doing."
+            Text = Loc.T("Tour.Info")
         },
         new TourStep
         {
             Target = () => MenuExtras,
-            Text = "Extras is where you can change how things look — build an Ultrahand theme with "
-                 + "a live preview, pick a wallpaper, or set a custom Hekate background."
+            Text = Loc.T("Tour.Extras")
         },
         new TourStep
         {
             Target = () => MenuHelp,
-            Text = "Help has a link to the Discord if you get stuck — and you can replay this tour "
-                 + "any time from Quick Tour."
+            Text = Loc.T("Tour.Help")
         },
     };
 
@@ -490,11 +514,11 @@ public partial class MainWindow : Window
         if (!FirstRun.ShouldOfferTour()) return;
 
         var ask = new ChoiceDialog(
-            "Welcome to Switch-CFW-Tool",
-            "A short tour walks you through the window and what each part does. It takes about a minute.",
-            "Take the Quick Tour?",
-            "Yes",
-            "No") { Owner = this };
+            Loc.T("Main.Welcome.Headline"),
+            Loc.T("Main.Welcome.Reason"),
+            Loc.T("Main.Welcome.Question"),
+            Loc.T("Common.Yes"),
+            Loc.T("Common.No")) { Owner = this };
 
         if (ask.ShowDialog() == true)
             Dispatcher.BeginInvoke(new Action(StartQuickTourAsFirstRun), DispatcherPriority.Background);
@@ -525,16 +549,16 @@ public partial class MainWindow : Window
         var selected = _items.Where(i => i.IsSelected).ToList();
         if (selected.Count == 0)
         {
-            MessageDialog.Show(this, "Nothing selected", "No tools selected",
-                "Pick at least one tool from the list before building.");
+            MessageDialog.Show(this, Loc.T("Main.NoTools.Title"), Loc.T("Main.NoTools.Headline"),
+                Loc.T("Main.NoTools.Message"));
             return;
         }
 
         var basePath = OutputPathBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(basePath))
         {
-            MessageDialog.Show(this, "No output folder", "No output folder chosen",
-                "Choose where the SDMC folder should be created before building.");
+            MessageDialog.Show(this, Loc.T("Main.NoOutput.Title"), Loc.T("Main.NoOutput.Headline"),
+                Loc.T("Main.NoOutput.Message"));
             return;
         }
 
@@ -568,7 +592,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            Log($"Note: could not clear temp folder ({ex.Message}) — continuing anyway.", LogKind.Info);
+            Log(Loc.T("Log.Main.TempNotCleared", ex.Message), LogKind.Info);
         }
 
         var downloader = new DownloadService(stagingRoot);
@@ -602,7 +626,7 @@ public partial class MainWindow : Window
             // and this must run after Hekate's own merge so it doesn't touch anything Hekate ships.
             if (selected.Any(i => i.Tool.Id == "hekate"))
             {
-                Log("Adding hekate_ipl.ini + bootloader/res icons...");
+                Log(Loc.T("Log.Main.AddingHekateAssets"));
                 var createdInis = bundledAssets.ExtractHekateAssets(sdRoot);
                 var iniService = new HekateIniService();
 
@@ -619,17 +643,16 @@ public partial class MainWindow : Window
                 // added or removed since the ini was first written.
                 iniService.SyncKipUsage(sdRoot, anyKipTool);
 
-                Log($"Boot entries set up for {mmcMode}"
-                    + (anyKipTool ? ", including the KIP line and NO KIP fallback." : " — no KIP tool installed, so the KIP line and NO KIP entries were left out."),
+                Log(Loc.T(anyKipTool ? "Log.Main.BootEntriesWithKip" : "Log.Main.BootEntriesNoKip", mmcMode),
                     LogKind.Info);
             }
 
             // Only relevant if at least one MMC-relevant (Atmosphère-based) tool was selected.
             if (selected.Any(i => i.Tool.MmcRelevant))
             {
-                Log($"Writing exosphere.ini for {mmcMode} mode...");
+                Log(Loc.T("Log.Main.WritingExosphere", mmcMode));
                 mmcService.WriteExosphereIni(sdRoot, mmcMode);
-                Log($"Writing/merging DNS-MITM host blocklist ({(mmcMode == MmcMode.EmuMMC ? "emummc.txt" : "sysmmc.txt")})...");
+                Log(Loc.T("Log.Main.WritingDnsMitm", mmcMode == MmcMode.EmuMMC ? "emummc.txt" : "sysmmc.txt"));
                 mmcService.WriteDnsMitmBlocklist(sdRoot, mmcMode);
             }
 
@@ -638,11 +661,14 @@ public partial class MainWindow : Window
             CheckBootIntegrity(sdRoot, selected);
 
             Log("");
-            Log($"Done. {(_writingIntoExistingCard ? "Your SD card has been updated." : $"Copy the contents of \"{sdRoot}\" to the root of your SD card.")}", LogKind.Success);
+            Log(_writingIntoExistingCard
+                    ? Loc.T("Log.Main.DoneCard")
+                    : Loc.T("Log.Main.DoneFolder", sdRoot),
+                LogKind.Success);
         }
         catch (Exception ex)
         {
-            Log($"ERROR: {ex.Message}", LogKind.Error);
+            Log(Loc.T("Log.Common.Error", ex.Message), LogKind.Error);
             _fatalError = ex.Message;
         }
         finally
@@ -674,14 +700,14 @@ public partial class MainWindow : Window
                 return;
 
             if (result.LinesRemoved > 0)
-                Log($"Removed {result.LinesRemoved} secmon= line(s) from hekate_ipl.ini — the referenced file isn't on the card, which would have made those boot entries fail silently.", LogKind.Info);
+                Log(Loc.T("Log.Main.SecmonRemoved", result.LinesRemoved), LogKind.Info);
 
             if (result.LinesAdded > 0)
-                Log($"Added {result.LinesAdded} secmon= line(s) to hekate_ipl.ini — atmosphere/exosphere.bin is present, so the Atmosphère entries now use it.", LogKind.Info);
+                Log(Loc.T("Log.Main.SecmonAdded", result.LinesAdded), LogKind.Info);
         }
         catch (Exception ex)
         {
-            Log($"Note: could not adjust secmon= lines in hekate_ipl.ini ({ex.Message}).", LogKind.Info);
+            Log(Loc.T("Log.Main.SecmonFailed", ex.Message), LogKind.Info);
         }
     }
 
@@ -708,7 +734,7 @@ public partial class MainWindow : Window
         if (_fatalError != null)
         {
             StatusText.Foreground = ErrorBrush;
-            StatusText.Text = "An error occurred. Check Log for further information.";
+            StatusText.Text = Loc.T("Main.Status.Error");
         }
         else if (_bootIntegrityProblems > 0)
         {
@@ -716,20 +742,20 @@ public partial class MainWindow : Window
             // which is a more serious outcome than a package that simply failed to download.
             StatusText.Foreground = ErrorBrush;
             StatusText.Text = _failedTools > 0
-                ? $"DONE, with problems — {_failedTools} package(s) failed to download and the boot files are incomplete. Check Log."
-                : "DONE, but the boot files are incomplete — check Log for what's missing.";
+                ? Loc.T("Main.Status.BootAndDownloadProblems", _failedTools)
+                : Loc.T("Main.Status.BootProblems");
         }
         else if (_failedTools > 0)
         {
             StatusText.Foreground = InfoBrush;
             StatusText.Text = _failedTools == 1
-                ? "DONE! — 1 package could not be downloaded. Check Log for further information."
-                : $"DONE! — {_failedTools} packages could not be downloaded. Check Log for further information.";
+                ? Loc.T("Main.Status.OneDownloadFailed")
+                : Loc.T("Main.Status.DownloadsFailed", _failedTools);
         }
         else
         {
             StatusText.Foreground = SuccessBrush;
-            StatusText.Text = "DONE!";
+            StatusText.Text = Loc.T("Main.Status.Done");
         }
     }
 
@@ -750,6 +776,24 @@ public partial class MainWindow : Window
         item.OptionalExtraAccepted = dialog.ShowDialog() == true;
     }
 
+    /// <summary>
+    /// Tells the user a tool needs an account before it can be used, and offers to open the
+    /// sign-up page. Shown once per selection, like the optional extras.
+    /// </summary>
+    private void AskAboutAccountNotice(ToolSelectionItem item)
+    {
+        var notice = item.Tool.AccountNotice;
+        if (notice == null || item.AccountNoticeAsked) return;
+
+        item.AccountNoticeAsked = true;
+
+        var dialog = new AccountNoticeDialog(notice.Headline, notice.Reason, notice.Question,
+            notice.RegisterLabel, notice.HaveAccountLabel) { Owner = this };
+
+        if (dialog.ShowDialog() == true)
+            Links.Open(notice.Url);
+    }
+
     private void Faq_Click(object sender, RoutedEventArgs e)
     {
         new FaqWindow { Owner = this }.ShowDialog();
@@ -759,9 +803,6 @@ public partial class MainWindow : Window
     {
         new GitHubLoginWindow(_github) { Owner = this }.ShowDialog();
     }
-
-    private void Discord_Click(object sender, RoutedEventArgs e)
-        => Links.Open("https://discord.gg/sgUNtBfwC7");
 
     // Tuned for the dark log panel: brighter, desaturated variants stay legible on #1C1C36,
     // whereas the darker shades used on a light background would disappear into it.
@@ -786,14 +827,11 @@ public partial class MainWindow : Window
         if (sysmodules.Count < SysmoduleWarningThreshold) return true;
 
         var dialog = new ChoiceDialog(
-            $"{sysmodules.Count} sysmodules will start at boot",
-            $"{string.Join(", ", sysmodules)}\n\n"
-            + "Firmware 21.0.0 and newer leave roughly 16 MB for custom sysmodules. Loading too "
-            + "many at once can make the console fail to boot and drop back into Hekate without "
-            + "an error message.",
-            "Continue with this selection?",
-            "Continue",
-            "Reselect") { Owner = this };
+            Loc.T("Main.Sysmodules.Headline", sysmodules.Count),
+            $"{string.Join(", ", sysmodules)}\n\n" + Loc.T("Main.Sysmodules.Reason"),
+            Loc.T("Main.Sysmodules.Question"),
+            Loc.T("Main.Sysmodules.Continue"),
+            Loc.T("Main.Sysmodules.Reselect")) { Owner = this };
 
         return dialog.ShowDialog() == true;
     }
@@ -817,7 +855,7 @@ public partial class MainWindow : Window
             Log("");
             foreach (var problem in problems)
             {
-                Log((problem.IsFatal ? "PROBLEM: " : "Note: ") + problem.Message,
+                Log(Loc.T(problem.IsFatal ? "Log.Main.BootProblem" : "Log.Main.BootNote", problem.Message),
                     problem.IsFatal ? LogKind.Error : LogKind.Info);
 
                 if (problem.IsFatal) _bootIntegrityProblems++;
@@ -825,7 +863,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            Log($"Could not verify the boot files: {ex.Message}", LogKind.Info);
+            Log(Loc.T("Log.Main.BootCheckFailed", ex.Message), LogKind.Info);
         }
     }
 
@@ -835,8 +873,8 @@ public partial class MainWindow : Window
         if (sysmodules.Count < SysmoduleWarningThreshold) return;
 
         Log("");
-        Log($"Note: {sysmodules.Count} sysmodules will auto-start at boot ({string.Join(", ", sysmodules)}).", LogKind.Info);
-        Log("  If the console boots straight back into Hekate without an error, try fewer of them.", LogKind.Info);
+        Log(Loc.T("Log.Main.SysmoduleNote", sysmodules.Count, string.Join(", ", sysmodules)), LogKind.Info);
+        Log(Loc.T("Log.Main.SysmoduleHint"), LogKind.Info);
     }
 
     private void Log(string message, LogKind level = LogKind.Normal)

@@ -90,7 +90,7 @@ public partial class ManageCfwWindow : Window
 
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "Select the root of your SD card" };
+        var dialog = new OpenFolderDialog { Title = Loc.T("Common.SelectSdRoot") };
         if (dialog.ShowDialog() != true) return;
 
         SdPathBox.Text = dialog.FolderName;
@@ -155,10 +155,10 @@ public partial class ManageCfwWindow : Window
                 ActionPending = actionPending,
                 ActionLabel = actionLabel,
                 Details = !installed
-                    ? "not installed"
+                    ? Loc.T("Manage.Details.NotInstalled")
                     : known
-                        ? $"{version ?? "unknown version"}  ·  installed {record!.InstalledAt:yyyy-MM-dd}"
-                        : "detected on card  ·  version unknown"
+                        ? Loc.T("Manage.Details.Installed", version ?? Loc.T("Manage.Details.UnknownVersion"), record!.InstalledAt)
+                        : Loc.T("Manage.Details.Detected")
             });
         }
 
@@ -174,8 +174,8 @@ public partial class ManageCfwWindow : Window
             var count = _entries.Count(e => e.IsInstalled);
             StatusText.Foreground = SuccessBrush;
             StatusText.Text = count == 0
-                ? "Nothing installed on this card yet."
-                : $"{count} tool(s) installed.";
+                ? Loc.T("Manage.Status.NothingInstalled")
+                : Loc.T("Manage.Status.Count", count);
         }
     }
 
@@ -188,14 +188,14 @@ public partial class ManageCfwWindow : Window
     private (bool Pending, string Label) ResolveAction(CfwTool tool, string? recordedVersion)
     {
         if (string.IsNullOrEmpty(recordedVersion) || tool.GitHubRepo == null)
-            return (false, "Update/Reload");
+            return (false, Loc.T("Manage.UpdateOrReload"));
 
         if (!_latestVersionCache.TryGetValue(tool.Id, out var latest))
-            return (true, "Update/Reload");
+            return (true, Loc.T("Manage.UpdateOrReload"));
 
         var label = string.Equals(recordedVersion, latest, StringComparison.OrdinalIgnoreCase)
-            ? "Reload"
-            : "Update";
+            ? Loc.T("Manage.Reload")
+            : Loc.T("Manage.Update");
         return (false, label);
     }
 
@@ -251,7 +251,7 @@ public partial class ManageCfwWindow : Window
             }
             catch (Exception ex)
             {
-                _log($"[{tool.DisplayName}] Could not check for updates: {ex.Message}", LogKind.Info);
+                _log(Loc.T("Log.Manage.UpdateCheckFailed", tool.DisplayName, ex.Message), LogKind.Info);
             }
         }
 
@@ -276,8 +276,8 @@ public partial class ManageCfwWindow : Window
     {
         if (!Directory.Exists(SdPath))
         {
-            MessageDialog.Show(this, "Manage CFW", "No SD card selected",
-                "Choose your SD card at the top of this window first.");
+            MessageDialog.Show(this, Loc.T("Manage.Title"), Loc.T("Common.NoSdCard.Headline"),
+                Loc.T("Manage.NoSdCard.Message"));
             return;
         }
 
@@ -286,7 +286,7 @@ public partial class ManageCfwWindow : Window
 
         IsEnabled = false;
         StatusText.Foreground = InfoBrush;
-        StatusText.Text = $"{(reinstall ? "Reinstalling" : "Installing")} {tool.DisplayName}...";
+        StatusText.Text = Loc.T(reinstall ? "Manage.Status.Reinstalling" : "Manage.Status.Installing", tool.DisplayName);
 
         // A single tool has no sub-steps to count, unlike the main window's per-tool build
         // progress — so the bar is shown full-width rather than stuck at 0%, and the animated
@@ -319,13 +319,13 @@ public partial class ManageCfwWindow : Window
                 ini.SyncSecmonLines(SdPath);
 
                 StatusText.Foreground = SuccessBrush;
-                StatusText.Text = $"{tool.DisplayName} {(reinstall ? "reinstalled" : "installed")}.";
-                _log($"{tool.DisplayName} {(reinstall ? "reinstalled" : "installed")} on {SdPath}.", LogKind.Success);
+                StatusText.Text = Loc.T(reinstall ? "Manage.Status.Reinstalled" : "Manage.Status.Installed", tool.DisplayName);
+                _log(Loc.T(reinstall ? "Log.Manage.Reinstalled" : "Log.Manage.Installed", tool.DisplayName, SdPath), LogKind.Success);
             }
             else
             {
                 StatusText.Foreground = ErrorBrush;
-                StatusText.Text = $"{tool.DisplayName} could not be installed — see the log.";
+                StatusText.Text = Loc.T("Manage.Status.InstallFailed", tool.DisplayName);
             }
         }
         catch (Exception ex)
@@ -351,19 +351,19 @@ public partial class ManageCfwWindow : Window
         // files go: everything the tool installed is removed.
         var leftovers = ToolLeftovers.FindConfigFolders(SdPath, entry.ToolId);
 
-        var reason = "All files this tool installed will be deleted from the card.";
+        var reason = Loc.T("Manage.Remove.Files");
         if (leftovers.Count > 0)
         {
             var names = leftovers.Select(d => "config/" + Path.GetFileName(d));
-            reason += $" Its settings folder will go too ({string.Join(", ", names)}).";
+            reason += " " + Loc.T("Manage.Remove.Settings", string.Join(", ", names));
         }
 
         var confirm = new ChoiceDialog(
-            $"Remove {entry.DisplayName}?",
-            reason + " Save backups and other data you created are not touched.",
-            "Remove it completely?",
-            "Remove",
-            "Cancel") { Owner = this };
+            Loc.T("Manage.Remove.Headline", entry.DisplayName),
+            reason + " " + Loc.T("Manage.Remove.Untouched"),
+            Loc.T("Manage.Remove.Question"),
+            Loc.T("Manage.Remove.Yes"),
+            Loc.T("Common.Cancel")) { Owner = this };
 
         if (confirm.ShowDialog() != true) return;
 
@@ -371,7 +371,7 @@ public partial class ManageCfwWindow : Window
         var removed = 0;
         var failed = 0;
 
-        _log($"Removing {entry.DisplayName}...", LogKind.Normal);
+        _log(Loc.T("Log.Manage.Removing", entry.DisplayName), LogKind.Normal);
 
         // Entries can be single files or whole folders — a title-ID directory under
         // atmosphere/contents is one item but many files.
@@ -384,20 +384,20 @@ public partial class ManageCfwWindow : Window
                 {
                     File.Delete(full);
                     removed++;
-                    _log($"  deleted {shown}", LogKind.Normal);
+                    _log("  " + Loc.T("Log.Manage.DeletedFile", shown), LogKind.Normal);
                 }
                 else if (Directory.Exists(full))
                 {
                     var count = Directory.GetFiles(full, "*", SearchOption.AllDirectories).Length;
                     Directory.Delete(full, recursive: true);
                     removed++;
-                    _log($"  deleted folder {shown} ({count} file(s))", LogKind.Normal);
+                    _log("  " + Loc.T("Log.Manage.DeletedFolder", shown, count), LogKind.Normal);
                 }
             }
             catch (Exception ex)
             {
                 failed++;
-                _log($"  could not delete {shown}: {ex.Message}", LogKind.Error);
+                _log("  " + Loc.T("Log.Manage.DeleteFailed", shown, ex.Message), LogKind.Error);
             }
         }
 
@@ -408,12 +408,12 @@ public partial class ManageCfwWindow : Window
             {
                 Directory.Delete(folder, recursive: true);
                 removed++;
-                _log($"  deleted settings folder {shown}", LogKind.Normal);
+                _log("  " + Loc.T("Log.Manage.DeletedSettings", shown), LogKind.Normal);
             }
             catch (Exception ex)
             {
                 failed++;
-                _log($"  could not delete {shown}: {ex.Message}", LogKind.Error);
+                _log("  " + Loc.T("Log.Manage.DeleteFailed", shown, ex.Message), LogKind.Error);
             }
         }
 
@@ -439,12 +439,12 @@ public partial class ManageCfwWindow : Window
         }
 
         if (failed == 0)
-            _log($"{entry.DisplayName} removed completely — {removed} item(s) deleted, no leftovers.", LogKind.Success);
+            _log(Loc.T("Log.Manage.RemovedClean", entry.DisplayName, removed), LogKind.Success);
         else
-            _log($"{entry.DisplayName} removed with {failed} item(s) left behind — see the lines above.", LogKind.Info);
+            _log(Loc.T("Log.Manage.RemovedPartly", entry.DisplayName, failed), LogKind.Info);
 
         StatusText.Foreground = failed == 0 ? SuccessBrush : InfoBrush;
-        StatusText.Text = $"{entry.DisplayName}: {removed} item(s) removed.";
+        StatusText.Text = Loc.T("Manage.Status.Removed", entry.DisplayName, removed);
         Rescan();
     }
 

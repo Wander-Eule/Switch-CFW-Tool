@@ -1,7 +1,8 @@
 <Window x:Class="SwitchCfwTool.ThemingWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Theming" Height="790" Width="1030"
+        xmlns:l="clr-namespace:SwitchCfwTool.Localization"
+        Title="{l:Tr Theming.Title}" Height="790" Width="1030"
         MinHeight="620" MinWidth="920"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackground}"
@@ -16,8 +17,8 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="Theming" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center"/>
-            <TextBlock Text="SELECT THE ROOT OF YOUR SD CARD AND CUSTOMIZE THE LOOK OF YOUR TOOLS" FontSize="11" FontWeight="Bold"
+            <TextBlock Text="{l:Tr Theming.Title}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center"/>
+            <TextBlock Text="{l:Tr Theming.Subtitle}" FontSize="11" FontWeight="Bold"
                        HorizontalAlignment="Center" Margin="0,3,0,0"
                        Foreground="{StaticResource TealBrush}"/>
         </StackPanel>
@@ -28,17 +29,17 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="SD CARD" VerticalAlignment="Center" FontWeight="Bold"
+            <TextBlock Grid.Column="0" Text="{l:Tr Common.SdCardLabel}" VerticalAlignment="Center" FontWeight="Bold"
                        Margin="0,0,10,0" Foreground="{StaticResource TealBrush}" FontSize="12"/>
             <TextBox Grid.Column="1" x:Name="SdPathBox" VerticalAlignment="Center"/>
-            <Button Grid.Column="2" Content="Browse" Style="{StaticResource PrimaryButton}"
+            <Button Grid.Column="2" Content="{l:Tr Common.Browse}" Style="{StaticResource PrimaryButton}"
                     Margin="8,0,0,0" Padding="18,6" Click="BrowseSd_Click"/>
         </Grid>
 
         <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0">
 
             <!-- ========== Ultrahand ========== -->
-            <TabItem Header="Ultrahand Theme">
+            <TabItem Header="{l:Tr Theming.Tab.Ultrahand}">
                 <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -59,7 +60,7 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Text="PICK AN ELEMENT, THEN ADJUST IT"
+                            <TextBlock Grid.Row="0" Text="{l:Tr Theming.EditorHeader}"
                                        FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center"
                                        Margin="0,0,0,8" Foreground="{StaticResource TealBrush}"/>
 
@@ -176,11 +177,11 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Name" VerticalAlignment="Center"
+                                <TextBlock Grid.Column="0" Text="{l:Tr Theming.Name}" VerticalAlignment="Center"
                                            FontWeight="Bold" Margin="0,0,8,0" FontSize="12"
                                            Foreground="{StaticResource TealBrush}"/>
                                 <TextBox Grid.Column="1" x:Name="ThemeNameBox" Text="custom" VerticalAlignment="Center"/>
-                                <Button Grid.Column="2" Content="Save Theme" Style="{StaticResource PrimaryButton}"
+                                <Button Grid.Column="2" Content="{l:Tr Theming.SaveTheme}" Style="{StaticResource PrimaryButton}"
                                         Margin="8,0,0,0" Padding="16,6" Click="SaveTheme_Click"/>
                             </Grid>
                         </Grid>
@@ -194,11 +195,13 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="LIVE PREVIEW" FontSize="10.5" FontWeight="Bold"
+                            <TextBlock Grid.Row="0" Text="{l:Tr Theming.PreviewHeader}" FontSize="10.5" FontWeight="Bold"
                                        HorizontalAlignment="Center" Margin="0,0,0,10"
                                        Foreground="{StaticResource TealBrush}"/>
 
-                            <!-- Mock of the Ultrahand overlay; every brush is driven from code. -->
+                            <!-- Mock of the Ultrahand overlay; every brush is driven from code. Its
+                                 texts are deliberately left untranslated: they stand in for
+                                 Ultrahand's own screen, not for this program's. -->
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <Border x:Name="PreviewRoot" CornerRadius="6" Padding="12,10"
                                     VerticalAlignment="Top" Background="#000000">
@@ -380,7 +383,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="WALLPAPER" FontSize="10.5" FontWeight="Bold"
+                            <TextBlock Grid.Row="0" Text="{l:Tr Theming.WallpaperHeader}" FontSize="10.5" FontWeight="Bold"
                                        HorizontalAlignment="Center" Margin="0,0,0,10"
                                        Foreground="{StaticResource TealBrush}"/>
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -448,7 +451,7 @@
             </TabItem>
 
             <!-- ========== Hekate ========== -->
-            <TabItem Header="Hekate Wallpaper">
+            <TabItem Header="{l:Tr Theming.Tab.Hekate}">
                 <Border Background="{StaticResource PanelBrush}" CornerRadius="12" Margin="0,12,0,0"
                         BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}" Padding="18">
                     <Grid>
@@ -459,17 +462,17 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0">
-                            <TextBlock Text="CUSTOM BACKGROUND FOR HEKATE'S MENU" FontSize="10.5" FontWeight="Bold"
+                            <TextBlock Text="{l:Tr Theming.Hekate.Header}" FontSize="10.5" FontWeight="Bold"
                                        HorizontalAlignment="Center" Foreground="{StaticResource TealBrush}"/>
                             <TextBlock TextWrapping="Wrap" TextAlignment="Center" FontSize="12.5" Margin="0,10,0,0"
                                        Foreground="{StaticResource MutedBrush}"
-                                       Text="Hekate's GUI can show your own image behind its menu. It has to be a 1280 x 720 32-bit BMP placed at bootloader/res/background.bmp — pick any image here and it gets scaled, cropped and converted for you."/>
+                                       Text="{l:Tr Theming.Hekate.Description}"/>
                         </StackPanel>
 
                         <Border Grid.Row="1" Margin="0,16,0,0" CornerRadius="8" Background="#1FFFFFFF"
                                 BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}">
                             <Grid>
-                                <TextBlock x:Name="WallpaperHint" Text="No image chosen yet."
+                                <TextBlock x:Name="WallpaperHint" Text="{l:Tr Theming.Hekate.NoImage}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                            Foreground="{StaticResource MutedBrush}" FontSize="12.5"/>
                                 <Image x:Name="WallpaperPreview" Stretch="Uniform" Margin="10"/>
@@ -482,10 +485,10 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Content="Choose Image" Padding="16,6" Click="ChooseWallpaper_Click"/>
+                            <Button Grid.Column="0" Content="{l:Tr Theming.Hekate.ChooseImage}" Padding="16,6" Click="ChooseWallpaper_Click"/>
                             <TextBlock Grid.Column="1" x:Name="WallpaperStatus" VerticalAlignment="Center"
                                        Margin="14,0" FontSize="12" FontWeight="Bold" TextWrapping="Wrap"/>
-                            <Button Grid.Column="2" Content="Apply Wallpaper" Style="{StaticResource PrimaryButton}"
+                            <Button Grid.Column="2" Content="{l:Tr Theming.Hekate.Apply}" Style="{StaticResource PrimaryButton}"
                                     Padding="18,6" Click="ApplyWallpaper_Click"/>
                         </Grid>
                     </Grid>

@@ -53,7 +53,11 @@ public class ToolSelectionItem : INotifyPropertyChanged
             }
 
             // Asked again on every fresh selection, so the choice can be revised.
-            if (!value) OptionalExtraAsked = false;
+            if (!value)
+            {
+                OptionalExtraAsked = false;
+                AccountNoticeAsked = false;
+            }
 
             OnPropertyChanged();
             OnPropertyChanged(nameof(LatestVersionVisibility));
@@ -126,12 +130,21 @@ public class ToolSelectionItem : INotifyPropertyChanged
     /// <summary>Whether the optional-extra prompt has already been shown for this tool.</summary>
     public bool OptionalExtraAsked { get; set; }
 
+    /// <summary>Set once the account notice has been shown for the current selection.</summary>
+    public bool AccountNoticeAsked { get; set; }
+
     /// <summary>The user's answer to that prompt, read at build time.</summary>
     public bool OptionalExtraAccepted { get; set; }
+
+    /// <summary>Tooltip text, in the current language.</summary>
+    public string Description => Tool.Description;
 
     public ToolSelectionItem(CfwTool tool)
     {
         Tool = tool;
+
+        // The items live as long as the main window, so there's nothing to unsubscribe from.
+        Loc.LanguageChanged += () => OnPropertyChanged(nameof(Description));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

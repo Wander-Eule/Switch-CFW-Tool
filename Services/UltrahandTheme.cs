@@ -9,13 +9,21 @@ namespace SwitchCfwTool.Services;
 public class ThemeField
 {
     public required string Key { get; init; }
-    public required string Label { get; init; }
+
+    /// <summary>Name shown in the list, from "Theme.Field.&lt;Key&gt;" in the language files.</summary>
+    public string Label => Loc.T("Theme.Field." + Key);
 
     /// <summary>Alpha keys are 0–15 in Ultrahand, colour keys are RRGGBB hex.</summary>
     public bool IsAlpha { get; init; }
 
+    /// <summary>
+    /// Starts a new heading in the list; the text is "Theme.Group.&lt;GroupKey&gt;" in the
+    /// language files. Null = continues the heading above.
+    /// </summary>
+    public string? GroupKey { get; init; }
+
     /// <summary>Heading shown above this field in the list.</summary>
-    public string? Group { get; init; }
+    public string? Group => GroupKey == null ? null : Loc.T("Theme.Group." + GroupKey);
 }
 
 /// <summary>
@@ -54,69 +62,69 @@ public static class UltrahandTheme
 
     public static readonly List<ThemeField> EditableFields = new()
     {
-        new ThemeField { Group = "General",   Key = "text_color",                 Label = "Text" },
-        new ThemeField { Key = "bg_color",                                        Label = "Background" },
-        new ThemeField { Key = "bg_alpha",                                        Label = "Background opacity", IsAlpha = true },
-        new ThemeField { Key = "header_text_color",                               Label = "Section heading" },
-        new ThemeField { Key = "header_separator_color",                          Label = "Header separator" },
-        new ThemeField { Key = "separator_color",                                 Label = "Separator" },
+        new ThemeField { GroupKey = "General", Key = "text_color" },
+        new ThemeField { Key = "bg_color" },
+        new ThemeField { Key = "bg_alpha", IsAlpha = true },
+        new ThemeField { Key = "header_text_color" },
+        new ThemeField { Key = "header_separator_color" },
+        new ThemeField { Key = "separator_color" },
 
-        new ThemeField { Group = "Logo",      Key = "logo_color_1",               Label = "Logo colour 1" },
-        new ThemeField { Key = "logo_color_2",                                    Label = "Logo colour 2" },
-        new ThemeField { Key = "dynamic_logo_color_1",                            Label = "Logo animation 1" },
-        new ThemeField { Key = "dynamic_logo_color_2",                            Label = "Logo animation 2" },
-        new ThemeField { Key = "version_text_color",                              Label = "Version text" },
+        new ThemeField { GroupKey = "Logo", Key = "logo_color_1" },
+        new ThemeField { Key = "logo_color_2" },
+        new ThemeField { Key = "dynamic_logo_color_1" },
+        new ThemeField { Key = "dynamic_logo_color_2" },
+        new ThemeField { Key = "version_text_color" },
 
-        new ThemeField { Group = "Selected item", Key = "selection_text_color",   Label = "Selected text" },
-        new ThemeField { Key = "selection_bg_color",                              Label = "Selection background" },
-        new ThemeField { Key = "selection_bg_alpha",                              Label = "Selection opacity", IsAlpha = true },
-        new ThemeField { Key = "s2_highlight_color_1",                            Label = "Selection border 1" },
-        new ThemeField { Key = "s2_highlight_color_2",                            Label = "Selection border 2" },
-        new ThemeField { Key = "s2_highlight_color_3",                            Label = "Selection border 3" },
-        new ThemeField { Key = "s2_highlight_color_4",                            Label = "Selection border 4" },
+        new ThemeField { GroupKey = "SelectedItem", Key = "selection_text_color" },
+        new ThemeField { Key = "selection_bg_color" },
+        new ThemeField { Key = "selection_bg_alpha", IsAlpha = true },
+        new ThemeField { Key = "s2_highlight_color_1" },
+        new ThemeField { Key = "s2_highlight_color_2" },
+        new ThemeField { Key = "s2_highlight_color_3" },
+        new ThemeField { Key = "s2_highlight_color_4" },
 
-        new ThemeField { Group = "Status widget", Key = "clock_color",            Label = "Clock" },
-        new ThemeField { Key = "battery_color",                                   Label = "Battery" },
-        new ThemeField { Key = "temperature_color",                               Label = "Temperature" },
-        new ThemeField { Key = "s2_widget_border_color_1",                        Label = "Widget border 1" },
-        new ThemeField { Key = "s2_widget_border_color_2",                        Label = "Widget border 2" },
-        new ThemeField { Key = "s2_widget_border_color_3",                        Label = "Widget border 3" },
-        new ThemeField { Key = "s2_widget_border_color_4",                        Label = "Widget border 4" },
+        new ThemeField { GroupKey = "StatusWidget", Key = "clock_color" },
+        new ThemeField { Key = "battery_color" },
+        new ThemeField { Key = "temperature_color" },
+        new ThemeField { Key = "s2_widget_border_color_1" },
+        new ThemeField { Key = "s2_widget_border_color_2" },
+        new ThemeField { Key = "s2_widget_border_color_3" },
+        new ThemeField { Key = "s2_widget_border_color_4" },
 
-        new ThemeField { Group = "Toggles",   Key = "s2_toggle_on_color",         Label = "Toggle on" },
-        new ThemeField { Key = "s2_toggle_off_color",                             Label = "Toggle off" },
-        new ThemeField { Key = "s2_toggle_circle_color",                          Label = "Toggle knob" },
-        new ThemeField { Key = "on_text_color",                                   Label = "Value: on" },
-        new ThemeField { Key = "off_text_color",                                  Label = "Value: off" },
+        new ThemeField { GroupKey = "Toggles", Key = "s2_toggle_on_color" },
+        new ThemeField { Key = "s2_toggle_off_color" },
+        new ThemeField { Key = "s2_toggle_circle_color" },
+        new ThemeField { Key = "on_text_color" },
+        new ThemeField { Key = "off_text_color" },
 
-        new ThemeField { Group = "Radio buttons", Key = "s2_radio_selected_color", Label = "Radio selected" },
-        new ThemeField { Key = "s2_radio_inner_color",                            Label = "Radio dot" },
-        new ThemeField { Key = "s2_radio_ring_color",                             Label = "Radio ring" },
+        new ThemeField { GroupKey = "RadioButtons", Key = "s2_radio_selected_color" },
+        new ThemeField { Key = "s2_radio_inner_color" },
+        new ThemeField { Key = "s2_radio_ring_color" },
 
-        new ThemeField { Group = "Sliders",   Key = "trackbar_full_color",        Label = "Slider filled" },
-        new ThemeField { Key = "trackbar_empty_color",                            Label = "Slider empty" },
-        new ThemeField { Key = "trackbar_malleable_slider_color",                 Label = "Slider filled (stepped)" },
-        new ThemeField { Key = "trackbar_slider_color",                           Label = "Slider knob" },
-        new ThemeField { Key = "trackbar_slider_malleable_color",                 Label = "Slider knob (stepped)" },
-        new ThemeField { Key = "trackbar_slider_border_color",                    Label = "Slider knob ring" },
+        new ThemeField { GroupKey = "Sliders", Key = "trackbar_full_color" },
+        new ThemeField { Key = "trackbar_empty_color" },
+        new ThemeField { Key = "trackbar_malleable_slider_color" },
+        new ThemeField { Key = "trackbar_slider_color" },
+        new ThemeField { Key = "trackbar_slider_malleable_color" },
+        new ThemeField { Key = "trackbar_slider_border_color" },
 
-        new ThemeField { Group = "Info boxes", Key = "table_bg_color",            Label = "Info box background" },
-        new ThemeField { Key = "table_bg_alpha",                                  Label = "Info box opacity", IsAlpha = true },
-        new ThemeField { Key = "table_section_text_color",                        Label = "Info box label" },
-        new ThemeField { Key = "table_info_text_color",                           Label = "Info box value" },
-        new ThemeField { Key = "s2_table_border_color_1",                         Label = "Info box border 1" },
-        new ThemeField { Key = "s2_table_border_color_2",                         Label = "Info box border 2" },
-        new ThemeField { Key = "s2_table_border_color_3",                         Label = "Info box border 3" },
-        new ThemeField { Key = "s2_table_border_color_4",                         Label = "Info box border 4" },
+        new ThemeField { GroupKey = "InfoBoxes", Key = "table_bg_color" },
+        new ThemeField { Key = "table_bg_alpha", IsAlpha = true },
+        new ThemeField { Key = "table_section_text_color" },
+        new ThemeField { Key = "table_info_text_color" },
+        new ThemeField { Key = "s2_table_border_color_1" },
+        new ThemeField { Key = "s2_table_border_color_2" },
+        new ThemeField { Key = "s2_table_border_color_3" },
+        new ThemeField { Key = "s2_table_border_color_4" },
 
-        new ThemeField { Group = "Hint boxes", Key = "highlight_color_1",         Label = "Hint box border 1" },
-        new ThemeField { Key = "highlight_color_2",                               Label = "Hint box border 2" },
-        new ThemeField { Key = "highlight_color_3",                               Label = "Hint box border 3" },
-        new ThemeField { Key = "highlight_color_4",                               Label = "Hint box border 4" },
+        new ThemeField { GroupKey = "HintBoxes", Key = "highlight_color_1" },
+        new ThemeField { Key = "highlight_color_2" },
+        new ThemeField { Key = "highlight_color_3" },
+        new ThemeField { Key = "highlight_color_4" },
 
-        new ThemeField { Group = "Bottom bar", Key = "bottom_text_color",         Label = "Button hint text" },
-        new ThemeField { Key = "bottom_button_color",                             Label = "Button hint badge" },
-        new ThemeField { Key = "bottom_separator_color",                          Label = "Bottom separator" },
+        new ThemeField { GroupKey = "BottomBar", Key = "bottom_text_color" },
+        new ThemeField { Key = "bottom_button_color" },
+        new ThemeField { Key = "bottom_separator_color" },
     };
 
     /// <summary>The complete key set with Ultrahand's stock values as the starting point.</summary>

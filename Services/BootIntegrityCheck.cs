@@ -43,9 +43,7 @@ public static class BootIntegrityCheck
 
             if (!Directory.Exists(sysDir))
             {
-                problems.Add(new IntegrityProblem(
-                    "bootloader/sys is missing. Hekate needs it to boot anything — its menu will still "
-                    + "appear, but every entry will fail.", true));
+                problems.Add(new IntegrityProblem(Loc.T("Boot.HekateSysMissing"), true));
             }
             else
             {
@@ -59,15 +57,13 @@ public static class BootIntegrityCheck
                 if (missing.Count > 0)
                 {
                     problems.Add(new IntegrityProblem(
-                        $"bootloader/sys is incomplete — missing: {string.Join(", ", missing)}.", true));
+                        Loc.T("Boot.HekateSysIncomplete", string.Join(", ", missing)), true));
                 }
             }
 
             if (!File.Exists(Path.Combine(sdRoot, "payload.bin")))
             {
-                problems.Add(new IntegrityProblem(
-                    "payload.bin is not in the root of the card. A modchip loads it from there on every start.",
-                    false));
+                problems.Add(new IntegrityProblem(Loc.T("Boot.PayloadMissing"), false));
             }
         }
 
@@ -77,25 +73,20 @@ public static class BootIntegrityCheck
 
             if (!File.Exists(package3))
             {
-                problems.Add(new IntegrityProblem(
-                    "atmosphere/package3 is missing. Every boot entry points at it, so none of them can work.",
-                    true));
+                problems.Add(new IntegrityProblem(Loc.T("Boot.Package3Missing"), true));
             }
             else
             {
                 var size = new FileInfo(package3).Length;
                 if (size < MinimumPackage3Bytes)
                 {
-                    problems.Add(new IntegrityProblem(
-                        $"atmosphere/package3 is only {size / 1024} KB, which is far too small to be a complete "
-                        + "copy. It was most likely truncated while downloading or extracting.", true));
+                    problems.Add(new IntegrityProblem(Loc.T("Boot.Package3TooSmall", size / 1024), true));
                 }
             }
 
             if (!Directory.Exists(Path.Combine(sdRoot, "atmosphere", "contents")))
             {
-                problems.Add(new IntegrityProblem(
-                    "atmosphere/contents is missing, so no sysmodules will start.", false));
+                problems.Add(new IntegrityProblem(Loc.T("Boot.ContentsMissing"), false));
             }
         }
 

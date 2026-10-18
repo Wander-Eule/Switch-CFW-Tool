@@ -22,9 +22,8 @@ public static class Links
     {
         try
         {
-            // UseShellExecute hands the address to the registered application — which lets a
-            // Discord invite open in the desktop client if it's installed, and falls back to
-            // the browser otherwise.
+            // UseShellExecute hands the address to whatever application is registered for it,
+            // which is the browser for ordinary web links.
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
         catch
