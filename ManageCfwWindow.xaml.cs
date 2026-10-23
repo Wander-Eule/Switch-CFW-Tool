@@ -228,8 +228,7 @@ public partial class ManageCfwWindow : Window
 
             try
             {
-                var release = await _github.GetLatestReleaseAsync(tool.GitHubRepo, cts.Token);
-                if (release == null) continue;
+                var release = (await _github.GetInstallableReleaseAsync(tool.GitHubRepo, tool.AssetNamePattern, tool.VersionFromAssetName, cts.Token)).Release;
 
                 string latest;
                 if (tool.VersionFromAssetName)

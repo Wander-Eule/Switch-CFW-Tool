@@ -169,9 +169,8 @@ public partial class MainWindow : Window
         {
             try
             {
-                var release = await _github.GetLatestReleaseAsync(item.Tool.GitHubRepo!);
-                if (release != null)
-                    item.LatestLabel = DescribeVersion(item.Tool, release);
+                var release = (await _github.GetInstallableReleaseAsync(item.Tool.GitHubRepo!, item.Tool.AssetNamePattern, item.Tool.VersionFromAssetName)).Release;
+                item.LatestLabel = DescribeVersion(item.Tool, release);
             }
             catch (Exception ex)
             {

@@ -59,10 +59,11 @@ public class ToolInstaller
             }
             else
             {
-                var release = await _github.GetLatestReleaseAsync(tool.GitHubRepo!)
-                    ?? throw new InvalidOperationException(Loc.T("Error.GitHub.EmptyLatestRelease"));
-                var asset = GitHubService.SelectAsset(release, tool.AssetNamePattern, tool.VersionFromAssetName)
-                    ?? throw new InvalidOperationException(Loc.T("Error.GitHub.NoAssetInLatest"));
+                var pick = await _github.GetInstallableReleaseAsync(tool.GitHubRepo!, tool.AssetNamePattern, tool.VersionFromAssetName);
+                var release = pick.Release;
+                var asset = pick.Asset;
+                if (pick.IsFallback)
+                    _log(Loc.T("Log.Install.OlderRelease", tool.DisplayName, release.TagName), LogKind.Info);
 
                 url = asset.BrowserDownloadUrl;
                 fileName = asset.Name;
@@ -109,10 +110,10 @@ public class ToolInstaller
             {
                 _log(Loc.T("Log.Install.ResolvingCompanion", companion.DisplayName), LogKind.Normal);
 
-                var release = await _github.GetLatestReleaseAsync(companion.GitHubRepo)
-                    ?? throw new InvalidOperationException(Loc.T("Error.GitHub.EmptyResponse"));
-                var asset = GitHubService.SelectAsset(release, companion.AssetNamePattern)
-                    ?? throw new InvalidOperationException(Loc.T("Error.GitHub.NoAsset"));
+                var pick = await _github.GetInstallableReleaseAsync(companion.GitHubRepo, companion.AssetNamePattern);
+                var asset = pick.Asset;
+                if (pick.IsFallback)
+                    _log(Loc.T("Log.Install.OlderRelease", companion.DisplayName, pick.Release.TagName), LogKind.Info);
 
                 var staged = await _downloader.DownloadAndStageAsync(
                     tool.Id + "-" + companion.DisplayName, asset.BrowserDownloadUrl, asset.Name);
@@ -145,10 +146,10 @@ public class ToolInstaller
 
         try
         {
-            var release = await _github.GetLatestReleaseAsync(extra.GitHubRepo)
-                ?? throw new InvalidOperationException(Loc.T("Error.GitHub.EmptyResponse"));
-            var asset = GitHubService.SelectAsset(release, extra.AssetNamePattern)
-                ?? throw new InvalidOperationException(Loc.T("Error.GitHub.NoAsset"));
+            var pick = await _github.GetInstallableReleaseAsync(extra.GitHubRepo, extra.AssetNamePattern);
+            var asset = pick.Asset;
+            if (pick.IsFallback)
+                _log(Loc.T("Log.Install.OlderRelease", tool.DisplayName, pick.Release.TagName), LogKind.Info);
 
             var staged = await _downloader.DownloadAndStageAsync(
                 tool.Id + "-extra", asset.BrowserDownloadUrl, asset.Name);

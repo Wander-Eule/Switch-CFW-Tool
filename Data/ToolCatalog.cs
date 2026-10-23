@@ -112,7 +112,7 @@ public static class ToolCatalog
             ConfigFolders = new[] { "config/sys-patch" },
             Author = "ITotalJustice (forks by impeeza & borntohonk)",
             DisplayName = "SYS-Patch",
-            GitHubRepo = "borntohonk/sys-patch",
+            GitHubRepo = "impeeza/sys-patch",
             AssetNamePattern = "*.zip",
             IsSysmodule = true
         },

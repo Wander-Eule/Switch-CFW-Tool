@@ -13,6 +13,9 @@ namespace SwitchCfwTool.Services;
 /// <summary>
 /// Thin wrapper around the GitHub REST API for fetching release metadata.
 /// </summary>
+/// <summary>A release together with the file to install from it. IsFallback is true when a newer release exists but has no usable file.</summary>
+public sealed record InstallableRelease(GitHubRelease Release, GitHubAsset Asset, bool IsFallback);
+
 public class GitHubService
 {
     private readonly HttpClient _http;
@@ -54,6 +57,45 @@ public class GitHubService
             throw new HttpRequestException(await DescribeFailureAsync(resp, ct));
         var json = await resp.Content.ReadAsStringAsync(ct);
         return JsonSerializer.Deserialize<GitHubRelease>(json);
+    }
+
+    /// <summary>
+    /// The release a tool should be installed from: the newest published release that has a
+    /// file matching the tool's pattern. Many projects publish a tag with only the source code
+    /// attached, and "latest" alone would then find nothing to download. In that case the
+    /// search goes back to the newest release that does have a file.
+    /// </summary>
+    public async Task<InstallableRelease> GetInstallableReleaseAsync(string ownerRepo, string? pattern,
+        bool preferHighestVersion = false, CancellationToken ct = default)
+    {
+        var releases = await GetAllReleasesAsync(ownerRepo, ct);
+        var skippedNewer = false;
+
+        foreach (var release in releases)
+        {
+            if (release.Draft || release.Prerelease) continue;
+
+            var asset = TrySelectAsset(release, pattern, preferHighestVersion);
+            if (asset != null)
+                return new InstallableRelease(release, asset, IsFallback: skippedNewer);
+
+            skippedNewer = true;
+        }
+
+        throw new InvalidOperationException(Loc.T("Error.GitHub.NoInstallableRelease", ownerRepo));
+    }
+
+    private static GitHubAsset? TrySelectAsset(GitHubRelease release, string? pattern, bool preferHighestVersion)
+    {
+        if (release.Assets.Count == 0) return null;
+        try
+        {
+            return SelectAsset(release, pattern, preferHighestVersion);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Fetches all releases (newest first) so the user can pick a specific one in "Custom" mode.</summary>
