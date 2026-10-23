@@ -78,6 +78,10 @@ public class ToolInstaller
 
             _log(Loc.T("Log.Install.Merged", tool.DisplayName), LogKind.Success);
 
+            // Companions first, so their files are part of this tool's install record. Otherwise
+            // they'd be booked to the next tool and wouldn't be removed on uninstall.
+            await DownloadCompanionsAsync(tool);
+
             InstallManifest.Upsert(_sdRoot, new InstallRecord
             {
                 ToolId = tool.Id,
@@ -86,8 +90,6 @@ public class ToolInstaller
                 InstalledAt = DateTime.Now,
                 Files = _builder.TakeWrittenFiles()
             }, _asImport);
-
-            await DownloadCompanionsAsync(tool);
 
             if (downloadOptionalExtra)
                 await DownloadOptionalExtraAsync(tool);
@@ -124,11 +126,15 @@ public class ToolInstaller
                     Id = "companion-" + companion.DisplayName,
                     Author = companion.Author,
                     DisplayName = companion.DisplayName,
-                    GitHubRepo = companion.GitHubRepo
+                    GitHubRepo = companion.GitHubRepo,
+                    ArchiveSubfolder = companion.ArchiveSubfolder
                 };
 
-                _builder.MergeTool(pseudo, staged, asset.Name,
-                    detail => _log($"[{companion.DisplayName}] {detail}", LogKind.Normal));
+                if (companion.IncludePaths != null)
+                    _builder.CopyArchiveFiles(staged, companion.IncludePaths);
+                else
+                    _builder.MergeTool(pseudo, staged, asset.Name,
+                        detail => _log($"[{companion.DisplayName}] {detail}", LogKind.Normal));
 
                 _log(Loc.T("Log.Install.CompanionAdded", companion.DisplayName, tool.DisplayName), LogKind.Success);
             }

@@ -122,6 +122,18 @@ public class CompanionDownload
     public required string GitHubRepo { get; init; }
     public required string AssetNamePattern { get; init; }
 
+    /// <summary>
+    /// SD-card folder the archive's contents go into as a whole (e.g. "config/ultrahand/lang").
+    /// Null = routed by file type like any other download.
+    /// </summary>
+    public string? ArchiveSubfolder { get; init; }
+
+    /// <summary>
+    /// Only these files are taken from the archive, each to the same relative path on the SD card
+    /// (e.g. "atmosphere/contents/.../exefs.nsp"). Null = take what the archive offers.
+    /// </summary>
+    public string[]? IncludePaths { get; init; }
+
     /// <summary>Credit line for the Info window, same format as CfwTool.Author.</summary>
     public required string Author { get; init; }
 }

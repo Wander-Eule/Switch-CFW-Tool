@@ -81,6 +81,26 @@ public class SdCardBuilder
         return copy;
     }
 
+    /// <summary>
+    /// Copies only the listed files out of a downloaded archive, each to the same relative path
+    /// under the SD root. Used when an archive mixes what we want with things we don't (e.g. the
+    /// sys-clk package also carries an overlay and a manager that come from elsewhere).
+    /// </summary>
+    public void CopyArchiveFiles(string stagedPath, IEnumerable<string> relativePaths)
+    {
+        foreach (var rel in relativePaths)
+        {
+            var source = Path.Combine(stagedPath, rel.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(source))
+                throw new FileNotFoundException(Loc.T("Error.Build.StagedFileMissing", rel));
+
+            var target = Path.Combine(_sdRoot, rel.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(source, target, overwrite: true);
+            Record(target);
+        }
+    }
+
     private void Record(string absolutePath)
     {
         var rel = Path.GetRelativePath(_sdRoot, absolutePath).Replace('\\', '/');

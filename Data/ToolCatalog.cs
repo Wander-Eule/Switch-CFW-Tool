@@ -184,8 +184,31 @@ public static class ToolCatalog
             Author = "RetroNX Team (fork by ppkantorski)",
             DisplayName = "SYS-CLK",
             GitHubRepo = "ppkantorski/sys-clk",
-            AssetNamePattern = "*.zip",
-            IsSysmodule = true
+            AssetNamePattern = "sys-clk-overlay.ovl",
+            IsSysmodule = true,
+            Companions = new[]
+            {
+                new CompanionDownload
+                {
+                    DisplayName = "SYS-CLK system module",
+                    GitHubRepo = "retronx-team/sys-clk",
+                    AssetNamePattern = "sys-clk-*.zip",
+                    IncludePaths = new[]
+                    {
+                        "atmosphere/contents/00FF0000636C6BFF/exefs.nsp",
+                        "atmosphere/contents/00FF0000636C6BFF/flags/boot2.flag"
+                    },
+                    Author = "RetroNX Team"
+                },
+                new CompanionDownload
+                {
+                    DisplayName = "SYS-CLK language files",
+                    GitHubRepo = "ppkantorski/sys-clk",
+                    AssetNamePattern = "lang.zip",
+                    ArchiveSubfolder = "config/ultrahand/lang",
+                    Author = "ppkantorski"
+                }
+            }
         },
         new CfwTool
         {
