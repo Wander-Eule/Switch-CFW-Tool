@@ -26,6 +26,7 @@ public static class CreatorLinks
         ["Lightos1"] = "https://github.com/Lightos1",
         ["shchmue"] = "https://github.com/shchmue",
         ["Kofysh"] = "https://github.com/Kofysh",
+        ["THZoria"] = "https://github.com/THZoria",
         ["suchmememanyskill"] = "https://github.com/suchmememanyskill",
         ["NaGaa95"] = "https://github.com/NaGaa95",
         ["rashevskyv"] = "https://github.com/rashevskyv",

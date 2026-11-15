@@ -11,7 +11,7 @@
     <ApplicationIcon>Assets\appicon.ico</ApplicationIcon>
 
     <!-- Shown in the exe's file properties and used by build-release.ps1 for the zip name. -->
-    <Version>1.1</Version>
+    <Version>1.2</Version>
 
     <!-- Self contained publish settings so end users don't need the .NET runtime installed.
          Build with: dotnet publish -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -->

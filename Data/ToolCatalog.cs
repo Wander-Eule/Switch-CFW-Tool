@@ -245,10 +245,10 @@ public static class ToolCatalog
         new CfwTool
         {
             Id = "lockpick_rcm",
-            Author = "shchmue (fork by Kofysh)",
+            Author = "shchmue (fork by THZoria)",
             DisplayName = "Lockpick RCM",
-            GitHubRepo = "Kofysh/Lockpick_RCM",
-            AssetNamePattern = "Lockpick_RCM.bin"
+            GitHubRepo = "THZoria/Lockpick_RCMaster",
+            AssetNamePattern = "Lockpick*.bin"
         },
         new CfwTool
         {
