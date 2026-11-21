@@ -1,21 +1,14 @@
-<Window x:Class="SwitchCfwTool.InfoWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:SwitchCfwTool.Localization"
+        x:Class="SwitchCfwTool.InfoWindow"
         Title="{l:Tr Common.InfoTitle}" Height="520" Width="440"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        CanResize="False"
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextBrush}"
-        Icon="Assets/appicon.ico"
-        TextOptions.TextFormattingMode="Ideal">
-    <Grid Margin="22">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
+        Icon="avares://Switch-CFW-Tool/Assets/appicon.ico">
+    <Grid Margin="22" RowDefinitions="Auto,*,Auto">
         <Border Grid.Row="0" Background="{StaticResource PanelBrush}" CornerRadius="12"
                 BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}"
                 Padding="16,14" Margin="0,0,0,14">
@@ -24,26 +17,22 @@
                            HorizontalAlignment="Center"/>
                 <TextBlock Text="{l:Tr Info.MadeBy}" FontWeight="SemiBold" FontSize="15"
                            Margin="0,8,0,0" HorizontalAlignment="Center"/>
-                <TextBlock Margin="0,6,0,0" FontSize="15" HorizontalAlignment="Center">
-                    <Run Text="🧋 " FontSize="17"/>
-                    <Hyperlink NavigateUri="https://patreon.com/wander_eule?utm_medium=unknown&amp;utm_source=join_link&amp;utm_campaign=creatorshare_creator&amp;utm_content=copyLink"
-                               RequestNavigate="Links_Navigate"
-                               Foreground="{StaticResource TealBrush}">
-                        <Run Text="{l:Tr Info.Patreon}" FontWeight="SemiBold"/>
-                    </Hyperlink>
-                    <Run Text=" 🍰" FontSize="17"/>
-                </TextBlock>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                    <TextBlock Text="🧋 " FontSize="17" VerticalAlignment="Center"/>
+                    <Button Classes="LinkButton" Click="Link_Click" VerticalAlignment="Center"
+                            Tag="https://patreon.com/wander_eule?utm_medium=unknown&amp;utm_source=join_link&amp;utm_campaign=creatorshare_creator&amp;utm_content=copyLink">
+                        <TextBlock Text="{l:Tr Info.Patreon}" FontSize="15" FontWeight="SemiBold"
+                                   TextDecorations="Underline"/>
+                    </Button>
+                    <TextBlock Text=" 🍰" FontSize="17" VerticalAlignment="Center"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 
         <Border Grid.Row="1" Background="{StaticResource PanelBrush}" CornerRadius="12"
                 BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}"
                 Padding="16,14">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+            <Grid RowDefinitions="Auto,*">
                 <TextBlock Grid.Row="0" Text="{l:Tr Info.CreditsHeader}"
                            FontSize="10.5" FontWeight="Bold" TextWrapping="Wrap"
                            TextAlignment="Center" HorizontalAlignment="Center"
@@ -73,13 +62,10 @@
         </Border>
 
         <Grid Grid.Row="2" Margin="0,16,0,0">
-            <!-- Nudged past the window's content margin with a negative offset so it sits in
-                 the actual bottom-left corner; it's decorative, so overflowing the layout
-                 slightly is fine (the Grid doesn't clip). -->
             <TextBlock Text="༝༚༝༚" VerticalAlignment="Bottom" HorizontalAlignment="Left"
                        FontSize="30" Margin="-6,0,0,-18"
                        Foreground="{StaticResource MutedBrush}"/>
-            <Button Content="{l:Tr Common.Close}" Style="{StaticResource PrimaryButton}"
+            <Button Content="{l:Tr Common.Close}" Classes="PrimaryButton"
                     HorizontalAlignment="Right" Padding="20,7" Click="Close_Click"/>
         </Grid>
     </Grid>

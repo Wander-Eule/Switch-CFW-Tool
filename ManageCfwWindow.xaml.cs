@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using Microsoft.Win32;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using SwitchCfwTool.Data;
 using SwitchCfwTool.Models;
 using SwitchCfwTool.Services;
@@ -37,14 +37,14 @@ public class InstalledEntry
     /// <summary>"Update" or "Reload" once resolved; meaningless while <see cref="ActionPending"/>.</summary>
     public required string ActionLabel { get; init; }
 
-    public Visibility InstallVisibility => IsInstalled ? Visibility.Collapsed : Visibility.Visible;
-    public Visibility ManageVisibility => IsInstalled ? Visibility.Visible : Visibility.Collapsed;
+    public bool InstallVisibility => !IsInstalled;
+    public bool ManageVisibility => IsInstalled;
 
     /// <summary>
     /// The Update/Reload button specifically: hidden until the version check resolves, so it
     /// never shows a placeholder guess. Uninstall isn't affected — it uses ManageVisibility.
     /// </summary>
-    public Visibility UpdateButtonVisibility => IsInstalled && !ActionPending ? Visibility.Visible : Visibility.Collapsed;
+    public bool UpdateButtonVisibility => IsInstalled && !ActionPending;
 }
 
 public partial class ManageCfwWindow : Window
@@ -54,23 +54,23 @@ public partial class ManageCfwWindow : Window
     private static readonly SolidColorBrush ErrorBrush = new(Color.FromRgb(0xFF, 0x6B, 0x6B));
 
     private readonly List<InstalledEntry> _entries = new();
-
-    // Latest-release version per tool id, fetched once per window and reused across rescans —
-    // re-checking every installed tool after every single install/uninstall would burn through
-    // GitHub's anonymous rate limit (60/hour) fast.
     private readonly Dictionary<string, string> _latestVersionCache = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _updateCheckCts;
 
-    public string SdPath => SdPathBox.Text.Trim();
+    public string SdPath => (SdPathBox.Text ?? "").Trim();
 
-    private readonly GitHubService _github;
-    private readonly Action<string, LogKind> _log;
+    private readonly GitHubService _github = null!;
+    private readonly Action<string, LogKind> _log = null!;
 
-    public ManageCfwWindow(string? initialPath, GitHubService github, Action<string, LogKind> log)
+    public ManageCfwWindow()
     {
         InitializeComponent();
         TitleBarTheme.Apply(this);
+        Closed += (_, _) => _updateCheckCts?.Cancel();
+    }
 
+    public ManageCfwWindow(string? initialPath, GitHubService github, Action<string, LogKind> log) : this()
+    {
         _github = github;
         _log = log;
 
@@ -80,31 +80,28 @@ public partial class ManageCfwWindow : Window
             if (Directory.Exists(initialPath)) Rescan();
         }
 
-        // A path typed by hand is picked up when the field loses focus, so there's still a
-        // way in without the folder picker.
         SdPathBox.LostFocus += (_, _) =>
         {
             if (Directory.Exists(SdPath)) Rescan();
         };
     }
 
-    private void Browse_Click(object sender, RoutedEventArgs e)
+    private async void Browse_Click(object? sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = Loc.T("Common.SelectSdRoot") };
-        if (dialog.ShowDialog() != true) return;
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = Loc.T("Common.SelectSdRoot"),
+            AllowMultiple = false
+        });
+        if (folders.Count == 0) return;
 
-        SdPathBox.Text = dialog.FolderName;
-        Rescan();   // picking a folder already states the intent — no second click needed
+        SdPathBox.Text = folders[0].Path.LocalPath;
+        Rescan();
     }
-
-
 
     private void Rescan()
     {
         BuildEntries();
-
-        // Fire-and-forget: the list above is already correct and shown, this only fills in
-        // "Update" vs "Reload" once the newest release for each tool comes back.
         _ = CheckForUpdatesAsync();
     }
 
@@ -112,25 +109,19 @@ public partial class ManageCfwWindow : Window
     {
         _entries.Clear();
 
-        // Picks up anything copied onto the card by hand since the last scan.
         InstallManifest.MergeImports(SdPath);
 
         var records = InstallManifest.Load(SdPath)
             .ToDictionary(r => r.ToolId, StringComparer.OrdinalIgnoreCase);
 
-        // Scanning the card as well as reading the record: a card set up elsewhere has no
-        // record at all, and even one of ours can have tools added by hand afterwards.
         var detected = ToolDetector.Scan(SdPath)
             .ToDictionary(d => d.ToolId, StringComparer.OrdinalIgnoreCase);
 
-        // Every tool is listed, so the card can be filled out from here as well as tidied up.
         foreach (var tool in ToolCatalog.All)
         {
             records.TryGetValue(tool.Id, out var record);
             detected.TryGetValue(tool.Id, out var trace);
 
-            // Only files that are actually still there, so a hand-deleted tool doesn't linger
-            // in the list as if it were installed.
             var recorded = record?.Files
                 .Select(f => Path.Combine(SdPath, f.Replace('/', Path.DirectorySeparatorChar)))
                 .Where(File.Exists)
@@ -166,8 +157,8 @@ public partial class ManageCfwWindow : Window
         InstalledList.ItemsSource = _entries;
 
         var haveCard = Directory.Exists(SdPath);
-        ListScroller.Visibility = haveCard ? Visibility.Visible : Visibility.Collapsed;
-        EmptyHint.Visibility = haveCard ? Visibility.Collapsed : Visibility.Visible;
+        ListScroller.IsVisible = haveCard;
+        EmptyHint.IsVisible = !haveCard;
 
         if (haveCard)
         {
@@ -179,12 +170,6 @@ public partial class ManageCfwWindow : Window
         }
     }
 
-    /// <summary>
-    /// Resolves the Update/Reload button's state for one tool. Pending (button hidden) unless
-    /// this is a case that can never be resolved — no recorded version to compare from, or no
-    /// GitHub repo to check against — in which case the combined label shows immediately
-    /// instead of waiting on a check that will never happen.
-    /// </summary>
     private (bool Pending, string Label) ResolveAction(CfwTool tool, string? recordedVersion)
     {
         if (string.IsNullOrEmpty(recordedVersion) || tool.GitHubRepo == null)
@@ -199,12 +184,6 @@ public partial class ManageCfwWindow : Window
         return (false, label);
     }
 
-    /// <summary>
-    /// Looks up the newest release for every installed tool that has a recorded version and
-    /// hasn't been checked yet this session, then rebuilds the list once so "Update"/"Reload"
-    /// can replace the generic label. A previous run still in flight is cancelled first, so
-    /// rapid rescans (switching cards, one install after another) don't pile up requests.
-    /// </summary>
     private async Task CheckForUpdatesAsync()
     {
         _updateCheckCts?.Cancel();
@@ -257,25 +236,21 @@ public partial class ManageCfwWindow : Window
         if (changed && !cts.IsCancellationRequested) BuildEntries();
     }
 
-    private async void Install_Click(object sender, RoutedEventArgs e)
+    private async void Install_Click(object? sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is InstalledEntry entry) await InstallAsync(entry, reinstall: false);
     }
 
-    private async void Update_Click(object sender, RoutedEventArgs e)
+    private async void Update_Click(object? sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is InstalledEntry entry) await InstallAsync(entry, reinstall: true);
     }
 
-    /// <summary>
-    /// Installs or reinstalls one tool straight onto the card, through the same code the main
-    /// window's build uses, so a tool added here ends up laid out exactly as it would there.
-    /// </summary>
     private async Task InstallAsync(InstalledEntry entry, bool reinstall)
     {
         if (!Directory.Exists(SdPath))
         {
-            MessageDialog.Show(this, Loc.T("Manage.Title"), Loc.T("Common.NoSdCard.Headline"),
+            await MessageDialog.Show(this, Loc.T("Manage.Title"), Loc.T("Common.NoSdCard.Headline"),
                 Loc.T("Manage.NoSdCard.Message"));
             return;
         }
@@ -287,13 +262,10 @@ public partial class ManageCfwWindow : Window
         StatusText.Foreground = InfoBrush;
         StatusText.Text = Loc.T(reinstall ? "Manage.Status.Reinstalling" : "Manage.Status.Installing", tool.DisplayName);
 
-        // A single tool has no sub-steps to count, unlike the main window's per-tool build
-        // progress — so the bar is shown full-width rather than stuck at 0%, and the animated
-        // gradient flowing across it is what actually signals "still working".
         ActionProgress.Minimum = 0;
         ActionProgress.Maximum = 1;
         ActionProgress.Value = 1;
-        ActionProgress.Visibility = Visibility.Visible;
+        ActionProgress.IsVisible = true;
         ProgressBarAnimation.SetIsAnimating(ActionProgress, true);
 
         try
@@ -302,8 +274,6 @@ public partial class ManageCfwWindow : Window
             var downloader = new DownloadService(staging);
             var builder = new SdCardBuilder(SdPath);
 
-            // Writing onto the card itself, so the record is merged straight away rather than
-            // handed over as an import file.
             var installer = new ToolInstaller(_github, downloader, builder, SdPath, SdPath,
                 asImport: false, _log);
 
@@ -312,7 +282,6 @@ public partial class ManageCfwWindow : Window
 
             if (ok)
             {
-                // A tool arriving can bring a KIP with it, which changes the boot entries.
                 var ini = new HekateIniService();
                 ini.SyncKipUsage(SdPath, InstallManifest.HasKipTool(SdPath));
                 ini.SyncSecmonLines(SdPath);
@@ -336,18 +305,16 @@ public partial class ManageCfwWindow : Window
         finally
         {
             ProgressBarAnimation.SetIsAnimating(ActionProgress, false);
-            ActionProgress.Visibility = Visibility.Collapsed;
+            ActionProgress.IsVisible = false;
             IsEnabled = true;
             Rescan();
         }
     }
 
-    private void Uninstall_Click(object sender, RoutedEventArgs e)
+    private async void Uninstall_Click(object? sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is not InstalledEntry entry) return;
 
-        // Destructive, so it still asks — but only to confirm, not to negotiate over which
-        // files go: everything the tool installed is removed.
         var leftovers = ToolLeftovers.FindConfigFolders(SdPath, entry.ToolId);
 
         var reason = Loc.T("Manage.Remove.Files");
@@ -362,9 +329,9 @@ public partial class ManageCfwWindow : Window
             reason + " " + Loc.T("Manage.Remove.Untouched"),
             Loc.T("Manage.Remove.Question"),
             Loc.T("Manage.Remove.Yes"),
-            Loc.T("Common.Cancel")) { Owner = this };
+            Loc.T("Common.Cancel"));
 
-        if (confirm.ShowDialog() != true) return;
+        if (await confirm.ShowDialog<bool>(this) != true) return;
 
         var toDelete = entry.Files;
         var removed = 0;
@@ -372,8 +339,6 @@ public partial class ManageCfwWindow : Window
 
         _log(Loc.T("Log.Manage.Removing", entry.DisplayName), LogKind.Normal);
 
-        // Entries can be single files or whole folders — a title-ID directory under
-        // atmosphere/contents is one item but many files.
         foreach (var full in toDelete)
         {
             var shown = Relative(full);
@@ -423,9 +388,6 @@ public partial class ManageCfwWindow : Window
 
         InstallManifest.Remove(SdPath, entry.ToolId);
 
-        // Removing a tool can invalidate parts of the boot menu: a kip1 line with no KIP
-        // behind it, a NO KIP entry with nothing to fall back from, or a secmon line whose
-        // exosphere.bin just went with the tool. All of that is corrected here.
         try
         {
             var ini = new HekateIniService();
@@ -447,7 +409,6 @@ public partial class ManageCfwWindow : Window
         Rescan();
     }
 
-    /// <summary>Path as it reads on the card, for log output.</summary>
     private string Relative(string full)
     {
         try
@@ -460,11 +421,6 @@ public partial class ManageCfwWindow : Window
         }
     }
 
-    /// <summary>
-    /// Walks a directory bottom-up and removes every folder that ended up empty, so an
-    /// uninstall doesn't leave a trail of hollow directories behind. The starting folder
-    /// itself is kept, since it is shared with everything else on the card.
-    /// </summary>
     private static void PruneEmptyFolders(string root)
     {
         if (!Directory.Exists(root)) return;
@@ -486,11 +442,6 @@ public partial class ManageCfwWindow : Window
         }
     }
 
-    /// <summary>
-    /// Deletes folders left behind once their files are gone, deepest first so parents empty
-    /// out too. Shared directories like switch/ or atmosphere/ still contain other tools'
-    /// files, so they simply won't be empty and are left alone by the same check.
-    /// </summary>
     private void RemoveEmptyFolders(IEnumerable<string> removedFiles)
     {
         var dirs = removedFiles
@@ -521,5 +472,5 @@ public partial class ManageCfwWindow : Window
         }
     }
 
-    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+    private void Close_Click(object? sender, RoutedEventArgs e) => Close();
 }

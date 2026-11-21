@@ -1,4 +1,5 @@
-using System.Windows;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 
 namespace SwitchCfwTool;
 
@@ -8,28 +9,23 @@ namespace SwitchCfwTool;
 /// </summary>
 public partial class AccountNoticeDialog : Window
 {
-    public AccountNoticeDialog(string headline, string reason, string question,
-        string goLabel, string haveLabel)
+    public AccountNoticeDialog()
     {
         InitializeComponent();
         TitleBarTheme.Apply(this);
+    }
 
+    public AccountNoticeDialog(string headline, string reason, string question,
+        string goLabel, string haveLabel) : this()
+    {
         HeadlineText.Text = headline;
         ReasonText.Text = reason;
         QuestionText.Text = question;
-        GoButton.Tag = goLabel;
-        HaveButton.Tag = haveLabel;
+        GoLabelText.Text = goLabel;
+        HaveLabelText.Text = haveLabel;
     }
 
-    private void Go_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = true;
-        Close();
-    }
+    private void Go_Click(object? sender, RoutedEventArgs e) => Close(true);
 
-    private void Have_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
-        Close();
-    }
+    private void Have_Click(object? sender, RoutedEventArgs e) => Close(false);
 }

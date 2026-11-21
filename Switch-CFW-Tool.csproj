@@ -2,22 +2,21 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Switch-CFW-Tool</AssemblyName>
     <RootNamespace>SwitchCfwTool</RootNamespace>
-    <ApplicationIcon>Assets\appicon.ico</ApplicationIcon>
+    <ApplicationIcon>Assets/appicon.ico</ApplicationIcon>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 
-    <!-- Shown in the exe's file properties and used by build-release.ps1 for the zip name. -->
+    <!-- Shown in the exe's file properties and used by build-release scripts for the archive name. -->
     <Version>1.2</Version>
 
     <!-- Self contained publish settings so end users don't need the .NET runtime installed.
-         Build with: dotnet publish -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -->
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+         Build with: dotnet publish -c Release -r <rid> -p:SelfContained=true -p:PublishSingleFile=true -->
     <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 
     <!-- Compresses the whole bundle. The embedded assets alone are ~4.6 MB of bitmaps and
@@ -26,7 +25,7 @@
          the bundle is unpacked. -->
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
 
-    <!-- Debug info stays available for readable stack traces, but lives inside the exe so
+    <!-- Debug info stays available for readable stack traces, but lives inside the binary so
          no loose .pdb has to be shipped next to it. -->
     <DebugType>embedded</DebugType>
 
@@ -37,13 +36,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- ProtectedData is genuinely a separate package on .NET; ZipFile is not — it ships with
-         the framework, and the old compatibility package only pulled in extra facades. -->
+    <PackageReference Include="Avalonia" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+    <!-- ProtectedData is used on Windows for DPAPI token encryption. -->
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\appicon.ico" />
+    <AvaloniaResource Include="Assets/appicon.ico" />
+    <AvaloniaXaml Include="*.xaml" />
   </ItemGroup>
 
   <ItemGroup>

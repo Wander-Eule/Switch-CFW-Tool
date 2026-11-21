@@ -1,29 +1,25 @@
 using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
+using System.Collections.Generic;
+using System.Diagnostics;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace SwitchCfwTool;
 
 /// <summary>
 /// Starts and stops a slow colour flow inside the progress bar's fill.
-///
-/// Done from code rather than in XAML because WPF freezes brushes declared inside a
-/// ControlTemplate, and a frozen brush silently ignores animations. Building the brush here
-/// keeps it mutable. The brush is the indicator's own Background, so the rounded corners of
-/// the bar clip it automatically — no overlay element that could stick out at the ends.
-///
-/// All colours are visible at once and the band travels along the bar, matching the look of
-/// Ultrahand's animated cursor.
 /// </summary>
 public static class ProgressBarAnimation
 {
-    private const string IndicatorPart = "PART_Indicator";
+    private const double TileWidth = 200.0;
+    private const double PeriodSeconds = 3.5;
+
+    private static readonly Dictionary<ProgressBar, DispatcherTimer> ActiveTimers = new();
 
     public static void SetIsAnimating(ProgressBar bar, bool animate)
     {
-        // The template may not be applied yet on the very first call after startup.
         if (!bar.IsLoaded)
         {
             bar.Loaded += Retry;
@@ -32,7 +28,7 @@ public static class ProgressBarAnimation
 
         Apply(bar, animate);
 
-        void Retry(object? sender, RoutedEventArgs e)
+        void Retry(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             bar.Loaded -= Retry;
             Apply(bar, animate);
@@ -41,41 +37,48 @@ public static class ProgressBarAnimation
 
     private static void Apply(ProgressBar bar, bool animate)
     {
-        bar.ApplyTemplate();
-        if (bar.Template?.FindName(IndicatorPart, bar) is not Border indicator) return;
-
-        if (!animate)
-        {
-            indicator.Background = BuildBrush(out _);
-            return;
-        }
+        StopTimer(bar);
 
         var brush = BuildBrush(out var shift);
-        indicator.Background = brush;
+        bar.Foreground = brush;
 
-        // Slides the repeating gradient sideways, so the whole colour band travels along the
-        // bar with every colour visible at once — the same effect as Ultrahand's cursor,
-        // rather than the bar fading from one colour to another.
-        shift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation
+        if (!animate) return;
+
+        var stopwatch = Stopwatch.StartNew();
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        timer.Tick += (_, _) =>
         {
-            From = 0,
-            To = 1,
-            Duration = TimeSpan.FromSeconds(3.5),
-            RepeatBehavior = RepeatBehavior.Forever
-        });
+            var t = (stopwatch.Elapsed.TotalSeconds % PeriodSeconds) / PeriodSeconds;
+            shift.X = t * TileWidth;
+        };
+
+        void OnDetached(object? sender, VisualTreeAttachmentEventArgs e)
+        {
+            bar.DetachedFromVisualTree -= OnDetached;
+            StopTimer(bar);
+        }
+
+        bar.DetachedFromVisualTree += OnDetached;
+        ActiveTimers[bar] = timer;
+        timer.Start();
+    }
+
+    private static void StopTimer(ProgressBar bar)
+    {
+        if (ActiveTimers.Remove(bar, out var existing))
+            existing.Stop();
     }
 
     private static LinearGradientBrush BuildBrush(out TranslateTransform shift)
     {
         shift = new TranslateTransform();
 
-        // Ends on the starting colour so the repeated tiles meet seamlessly.
         var brush = new LinearGradientBrush
         {
-            StartPoint = new Point(0, 0),
-            EndPoint = new Point(1, 0),
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Absolute),
+            EndPoint = new RelativePoint(TileWidth, 0, RelativeUnit.Absolute),
             SpreadMethod = GradientSpreadMethod.Repeat,
-            RelativeTransform = shift
+            Transform = shift
         };
         brush.GradientStops.Add(new GradientStop(Color.FromRgb(0x8B, 0x5C, 0xF6), 0.0));
         brush.GradientStops.Add(new GradientStop(Color.FromRgb(0x5E, 0x8C, 0xF0), 0.33));

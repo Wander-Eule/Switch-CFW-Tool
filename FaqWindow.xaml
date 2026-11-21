@@ -1,19 +1,13 @@
-<Window x:Class="SwitchCfwTool.FaqWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:SwitchCfwTool.Localization"
+        x:Class="SwitchCfwTool.FaqWindow"
         Title="{l:Tr Faq.Title}" Height="520" Width="440"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextBrush}"
-        Icon="Assets/appicon.ico"
-        TextOptions.TextFormattingMode="Ideal">
-    <Grid Margin="22">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
+        Icon="avares://Switch-CFW-Tool/Assets/appicon.ico">
+    <Grid Margin="22" RowDefinitions="*,Auto">
         <Border Grid.Row="0" Background="{StaticResource PanelBrush}" CornerRadius="12"
                 BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}"
                 Padding="16,14">
@@ -23,7 +17,7 @@
             </ScrollViewer>
         </Border>
 
-        <Button Grid.Row="1" Content="{l:Tr Common.Close}" Style="{StaticResource PrimaryButton}"
+        <Button Grid.Row="1" Content="{l:Tr Common.Close}" Classes="PrimaryButton"
                 HorizontalAlignment="Right" Padding="20,7" Margin="0,16,0,0" Click="Close_Click"/>
     </Grid>
 </Window>
