@@ -1,6 +1,6 @@
 using System;
-using System.Windows.Data;
-using System.Windows.Markup;
+using Avalonia.Data;
+using Avalonia.Markup.Xaml;
 
 namespace SwitchCfwTool.Localization;
 
@@ -11,7 +11,6 @@ namespace SwitchCfwTool.Localization;
 /// the text follows a language switch without the window having to be reopened. Works in
 /// templates and setters as well, because the binding itself decides how to apply there.
 /// </summary>
-[MarkupExtensionReturnType(typeof(object))]
 public class TrExtension : MarkupExtension
 {
     public TrExtension() { }
@@ -26,11 +25,10 @@ public class TrExtension : MarkupExtension
 
     public override object ProvideValue(IServiceProvider serviceProvider)
     {
-        var binding = new Binding($"[{Key}]")
+        return new Binding($"[{Key}]")
         {
             Source = Loc.Instance,
             Mode = BindingMode.OneWay
         };
-        return binding.ProvideValue(serviceProvider);
     }
 }

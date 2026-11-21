@@ -133,7 +133,7 @@ public class SdCardBuilder
         {
             // The archive holds a self-contained folder (e.g. NXMP's "nxmp", which carries
             // assets besides the .nro) that belongs under a known SD directory as a whole.
-            var target = Path.Combine(_sdRoot, tool.ArchiveSubfolder);
+            var target = Path.Combine(_sdRoot, tool.ArchiveSubfolder.Replace('/', Path.DirectorySeparatorChar));
             Directory.CreateDirectory(target);
             MergeDirectory(root, target);
             log(Loc.T("Log.Build.MergedIntoSubfolder", tool.ArchiveSubfolder));
@@ -164,7 +164,11 @@ public class SdCardBuilder
                 // consoles need it named exactly "payload.bin" in the SD root, and only one
                 // copy should remain — so it's renamed in place rather than copied.
                 var payloadBin = Directory
-                    .GetFiles(_sdRoot, "hekate_ctcaer_*.bin", SearchOption.TopDirectoryOnly)
+                    .GetFiles(_sdRoot, "hekate_ctcaer_*.bin", new EnumerationOptions
+                    {
+                        MatchCasing = MatchCasing.CaseInsensitive,
+                        RecurseSubdirectories = false
+                    })
                     .FirstOrDefault();
                 if (payloadBin != null)
                 {

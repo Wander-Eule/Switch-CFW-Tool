@@ -1,6 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.Windows.Navigation;
 
 namespace SwitchCfwTool;
 
@@ -11,19 +9,12 @@ namespace SwitchCfwTool;
 /// </summary>
 public static class Links
 {
-    /// <summary>Handler for a Hyperlink's RequestNavigate event.</summary>
-    public static void Navigate(object sender, RequestNavigateEventArgs e)
-    {
-        Open(e.Uri.AbsoluteUri);
-        e.Handled = true;
-    }
-
     public static void Open(string url)
     {
         try
         {
             // UseShellExecute hands the address to whatever application is registered for it,
-            // which is the browser for ordinary web links.
+            // which is the browser for ordinary web links across Windows, macOS, and Linux.
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
         catch

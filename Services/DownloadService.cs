@@ -59,7 +59,7 @@ public class DownloadService
             if (Directory.Exists(extractDir))
                 Directory.Delete(extractDir, true);
             Directory.CreateDirectory(extractDir);
-            ZipFile.ExtractToDirectory(destFile, extractDir, overwriteFiles: true);
+            ExtractZipCrossPlatform(destFile, extractDir);
 
             progress?.Report(new DownloadProgress { ToolId = toolId, Stage = "done", Message = fileName });
             return extractDir;
@@ -68,5 +68,39 @@ public class DownloadService
         progress?.Report(new DownloadProgress { ToolId = toolId, Stage = "done", Message = fileName });
         // Not an archive (e.g. a single .nro/.bin) — the staging dir itself contains the file.
         return toolStagingDir;
+    }
+
+    /// <summary>
+    /// Extracts a zip archive while normalizing Windows-style backslash separators so archives
+    /// authored on Windows unpack into proper subdirectories on Linux and macOS as well.
+    /// </summary>
+    private static void ExtractZipCrossPlatform(string archivePath, string destinationDir)
+    {
+        var destRoot = Path.GetFullPath(destinationDir);
+        if (!destRoot.EndsWith(Path.DirectorySeparatorChar))
+            destRoot += Path.DirectorySeparatorChar;
+
+        using var archive = ZipFile.OpenRead(archivePath);
+        foreach (var entry in archive.Entries)
+        {
+            var normalized = entry.FullName.Replace('\\', '/');
+            var isDirectory = normalized.EndsWith('/');
+            var relative = normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            if (string.IsNullOrEmpty(relative)) continue;
+
+            var fullPath = Path.GetFullPath(Path.Combine(destRoot, relative));
+            if (!fullPath.StartsWith(destRoot, StringComparison.Ordinal))
+                throw new IOException($"Zip entry escapes destination directory: {entry.FullName}");
+
+            if (isDirectory)
+            {
+                Directory.CreateDirectory(fullPath);
+            }
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+                entry.ExtractToFile(fullPath, overwrite: true);
+            }
+        }
     }
 }

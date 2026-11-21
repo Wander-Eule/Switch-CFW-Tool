@@ -1,20 +1,13 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Interop;
+using Avalonia.Controls;
 
 namespace SwitchCfwTool;
 
 /// <summary>
-/// Colours the native title bar to match the window body, so the app reads as one surface
-/// instead of a dark window wearing a light system caption.
-///
-/// This uses DWM window attributes rather than a custom chrome: replacing the title bar
-/// outright would mean re-implementing snapping, drag, double-click-to-maximise and the
-/// system menu by hand, and getting any of those subtly wrong is far more noticeable than
-/// a caption that stays default. Attributes unsupported by the running Windows version are
-/// simply ignored by DWM — on Windows 10 the dark caption still applies even though the
-/// exact colour attributes don't exist yet.
+/// Colours the native title bar on Windows to match the window body, so the app reads as one
+/// surface instead of a dark window wearing a light system caption. On macOS and Linux,
+/// Avalonia's dark theme variant handles the native chrome automatically.
 /// </summary>
 internal static class TitleBarTheme
 {
@@ -28,19 +21,22 @@ internal static class TitleBarTheme
 
     public static void Apply(Window window)
     {
-        if (window.IsInitialized && new WindowInteropHelper(window).Handle != IntPtr.Zero)
-            ApplyCore(window);
+        if (!OperatingSystem.IsWindows()) return;
+
+        if (window.TryGetPlatformHandle()?.Handle is { } handle && handle != IntPtr.Zero)
+            ApplyCore(handle);
         else
-            window.SourceInitialized += (_, _) => ApplyCore(window);
+            window.Opened += (_, _) =>
+            {
+                if (window.TryGetPlatformHandle()?.Handle is { } h && h != IntPtr.Zero)
+                    ApplyCore(h);
+            };
     }
 
-    private static void ApplyCore(Window window)
+    private static void ApplyCore(IntPtr hwnd)
     {
         try
         {
-            var hwnd = new WindowInteropHelper(window).Handle;
-            if (hwnd == IntPtr.Zero) return;
-
             var darkMode = 1;
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
 
