@@ -1,13 +1,10 @@
-using System.Windows;
-using System.Windows.Navigation;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 
 namespace SwitchCfwTool;
 
 /// <summary>
-/// Shown once a build finishes and a payload.bin was actually produced. What has to happen
-/// with that file differs completely between an RCM-jig console and a modchipped one, and
-/// getting it wrong is a common first stumble — so it's spelled out at the moment the file
-/// appears rather than left to the log.
+/// Shown once a build finishes and a payload.bin was actually produced.
 /// </summary>
 public partial class PayloadNoticeDialog : Window
 {
@@ -17,7 +14,11 @@ public partial class PayloadNoticeDialog : Window
         TitleBarTheme.Apply(this);
     }
 
-    private void Ok_Click(object sender, RoutedEventArgs e) => Close();
+    private void Ok_Click(object? sender, RoutedEventArgs e) => Close();
 
-private void Links_Navigate(object sender, RequestNavigateEventArgs e) => Links.Navigate(sender, e);
+    private void Link_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string url })
+            Links.Open(url);
+    }
 }

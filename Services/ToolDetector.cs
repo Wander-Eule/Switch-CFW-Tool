@@ -135,7 +135,11 @@ public static class ToolDetector
         try
         {
             return Directory.Exists(dir)
-                ? Directory.GetFiles(dir, pattern, option).ToList()
+                ? Directory.GetFiles(dir, pattern, new EnumerationOptions
+                {
+                    MatchCasing = MatchCasing.CaseInsensitive,
+                    RecurseSubdirectories = option == SearchOption.AllDirectories
+                }).ToList()
                 : new List<string>();
         }
         catch

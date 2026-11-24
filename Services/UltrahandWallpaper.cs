@@ -1,6 +1,9 @@
+using System;
 using System.IO;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using System.Runtime.InteropServices;
+using Avalonia;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 
 namespace SwitchCfwTool.Services;
 
@@ -28,24 +31,27 @@ public static class UltrahandWallpaper
         ("wallpaper_triangles.rgba", "Theming.Wallpaper.Triangles"),
     };
 
-    /// <summary>Turns the raw pixel data into something WPF can show.</summary>
-    public static BitmapSource LoadPreview(string resourceName)
+    /// <summary>Turns the raw pixel data into something Avalonia can show.</summary>
+    public static Bitmap LoadPreview(string resourceName)
     {
         var raw = ReadResource(resourceName);
+        var bitmap = new WriteableBitmap(
+            new PixelSize(Width, Height),
+            new Vector(96, 96),
+            PixelFormat.Rgba8888,
+            AlphaFormat.Unpremul);
 
-        // The file stores R,G,B,A per pixel; WPF's closest 32-bit format is Bgra32, so the
-        // red and blue bytes are swapped on the way in.
-        var swapped = new byte[raw.Length];
-        for (var i = 0; i < raw.Length; i += 4)
+        using var fb = bitmap.Lock();
+        var srcStride = Width * 4;
+        if (fb.RowBytes == srcStride)
         {
-            swapped[i] = raw[i + 2];
-            swapped[i + 1] = raw[i + 1];
-            swapped[i + 2] = raw[i];
-            swapped[i + 3] = raw[i + 3];
+            Marshal.Copy(raw, 0, fb.Address, raw.Length);
         }
-
-        var bitmap = BitmapSource.Create(Width, Height, 96, 96, PixelFormats.Bgra32, null, swapped, Width * 4);
-        bitmap.Freeze();
+        else
+        {
+            for (var y = 0; y < Height; y++)
+                Marshal.Copy(raw, y * srcStride, fb.Address + y * fb.RowBytes, srcStride);
+        }
         return bitmap;
     }
 

@@ -1,7 +1,7 @@
 using System;
 using System.IO;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Avalonia.Media.Imaging;
+using SkiaSharp;
 
 namespace SwitchCfwTool.Services;
 
@@ -9,8 +9,8 @@ namespace SwitchCfwTool.Services;
 /// Writes a Nyx background in exactly the shape Hekate expects: 1280x720, 32-bit BMP with a
 /// fully opaque alpha channel.
 ///
-/// The bytes are written by hand rather than through BmpBitmapEncoder because the encoder
-/// gives no guarantee about the bit depth or whether an alpha channel survives, and Hekate
+/// The bytes are written by hand rather than through an image encoder because encoders give
+/// no guarantee about the bit depth or whether an alpha channel survives, and Hekate
 /// documents both explicitly ("must be a 1280 x 720 32-bit BMP", alpha 0xFF for a solid
 /// background). Producing the file directly removes that uncertainty.
 /// </summary>
@@ -20,7 +20,7 @@ public static class HekateWallpaper
     public const int Height = 720;
 
     /// <summary>Scales and centre-crops the source to 1280x720, then writes the BMP.</summary>
-    public static void Save(BitmapSource source, string destinationPath)
+    public static void Save(Bitmap source, string destinationPath)
     {
         var pixels = Rasterize(source);
 
@@ -67,29 +67,43 @@ public static class HekateWallpaper
     }
 
     /// <summary>Fills the 1280x720 frame, cropping the overhanging side rather than distorting.</summary>
-    private static byte[] Rasterize(BitmapSource source)
+    private static byte[] Rasterize(Bitmap source)
     {
-        var scale = Math.Max((double)Width / source.PixelWidth, (double)Height / source.PixelHeight);
-        var scaledWidth = source.PixelWidth * scale;
-        var scaledHeight = source.PixelHeight * scale;
+        using var mem = new MemoryStream();
+        source.Save(mem);
+        mem.Position = 0;
+        using var skSource = SKBitmap.Decode(mem)
+            ?? throw new InvalidOperationException("Failed to decode image.");
 
-        var visual = new DrawingVisual();
-        using (var context = visual.RenderOpen())
-        {
-            context.DrawRectangle(Brushes.Black, null, new System.Windows.Rect(0, 0, Width, Height));
-            context.DrawImage(source, new System.Windows.Rect(
-                (Width - scaledWidth) / 2,
-                (Height - scaledHeight) / 2,
-                scaledWidth,
-                scaledHeight));
-        }
+        var info = new SKImageInfo(Width, Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        using var surface = SKSurface.Create(info)
+            ?? throw new InvalidOperationException("Failed to create drawing surface.");
+        var canvas = surface.Canvas;
+        canvas.Clear(SKColors.Black);
 
-        var target = new RenderTargetBitmap(Width, Height, 96, 96, PixelFormats.Pbgra32);
-        target.Render(visual);
+        var scale = Math.Max((float)Width / skSource.Width, (float)Height / skSource.Height);
+        var scaledWidth = skSource.Width * scale;
+        var scaledHeight = skSource.Height * scale;
+        var destRect = SKRect.Create(
+            (Width - scaledWidth) / 2f,
+            (Height - scaledHeight) / 2f,
+            scaledWidth,
+            scaledHeight);
 
-        var converted = new FormatConvertedBitmap(target, PixelFormats.Bgra32, null, 0);
+        using var paint = new SKPaint { IsAntialias = true, FilterQuality = SKFilterQuality.High };
+        canvas.DrawBitmap(skSource, destRect, paint);
+
         var buffer = new byte[Width * Height * 4];
-        converted.CopyPixels(buffer, Width * 4, 0);
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(buffer, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            var dstInfo = new SKImageInfo(Width, Height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
+            surface.ReadPixels(dstInfo, handle.AddrOfPinnedObject(), Width * 4, 0, 0);
+        }
+        finally
+        {
+            handle.Free();
+        }
         return buffer;
     }
 }

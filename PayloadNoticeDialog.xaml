@@ -1,14 +1,13 @@
-<Window x:Class="SwitchCfwTool.PayloadNoticeDialog"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:SwitchCfwTool.Localization"
+        x:Class="SwitchCfwTool.PayloadNoticeDialog"
         Title="{l:Tr Common.InfoTitle}" Width="470" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize" ShowInTaskbar="False"
+        CanResize="False" ShowInTaskbar="False"
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextBrush}"
-        Icon="Assets/appicon.ico"
-        TextOptions.TextFormattingMode="Ideal">
+        Icon="avares://Switch-CFW-Tool/Assets/appicon.ico">
     <Border Background="{StaticResource PanelBrush}" CornerRadius="12" Margin="18"
             BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}" Padding="20,17">
         <StackPanel>
@@ -19,22 +18,21 @@
                 <StackPanel>
                     <TextBlock Text="{l:Tr Payload.V1.Header}" FontSize="11" FontWeight="Bold"
                                TextAlignment="Center" Foreground="{StaticResource TealBrush}" Margin="0,0,0,5"/>
-                    <!-- The filename is picked out in its own colour and a monospaced face so
-                         it reads as a file rather than as part of the sentence. -->
                     <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="18" TextAlignment="Center">
                         <Run Text="{l:Tr Payload.V1.Before}"/>
-                        <Run Text="payload.bin" FontFamily="Consolas" FontWeight="Bold"
+                        <Run Text="payload.bin" FontFamily="Consolas, Menlo, monospace" FontWeight="Bold"
                              Foreground="{StaticResource InfoBrush}"/>
                         <Run Text="{l:Tr Payload.V1.After}"/>
                     </TextBlock>
-                    <TextBlock Margin="0,7,0,0" FontSize="12.5" TextAlignment="Center">
-                        <Run Text="{l:Tr Payload.V1.Injector}" Foreground="#9A9AB8"/>
-                        <Hyperlink NavigateUri="https://github.com/eliboa/TegraRcmGUI/releases"
-                                   RequestNavigate="Links_Navigate"
-                                   Foreground="{StaticResource TealBrush}">
-                            <Run Text="TegraRcmGUI" FontWeight="SemiBold"/>
-                        </Hyperlink>
-                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,7,0,0">
+                        <TextBlock Text="{l:Tr Payload.V1.Injector}" FontSize="12.5" Foreground="#9A9AB8"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <Button Classes="LinkButton" Click="Link_Click"
+                                Tag="https://github.com/eliboa/TegraRcmGUI/releases" VerticalAlignment="Center">
+                            <TextBlock Text="TegraRcmGUI" FontSize="12.5" FontWeight="SemiBold"
+                                       TextDecorations="Underline"/>
+                        </Button>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
@@ -44,36 +42,27 @@
                                TextAlignment="Center" Foreground="{StaticResource PurpleBrush}" Margin="0,0,0,5"/>
                     <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="18" TextAlignment="Center">
                         <Run Text="{l:Tr Payload.V2.Before}"/>
-                        <Run Text="payload.bin" FontFamily="Consolas" FontWeight="Bold"
+                        <Run Text="payload.bin" FontFamily="Consolas, Menlo, monospace" FontWeight="Bold"
                              Foreground="{StaticResource InfoBrush}"/>
                         <Run Text="{l:Tr Payload.V2.After}"/>
                     </TextBlock>
                 </StackPanel>
             </Border>
 
-            <Button Click="Ok_Click" Cursor="Hand" HorizontalAlignment="Center"
+            <Button Classes="IconButton" Click="Ok_Click" Cursor="Hand" HorizontalAlignment="Center"
                     Margin="0,18,0,0" IsDefault="True">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <StackPanel Background="Transparent">
-                            <Grid Width="46" Height="46">
-                                <Ellipse x:Name="Ring" Stroke="{StaticResource TealBrush}"
-                                         StrokeThickness="2.4" Fill="#1A2DD4BF"/>
-                                <Path Stroke="{StaticResource TealBrush}" StrokeThickness="3"
-                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      Data="M 13,24 L 20,31 L 33,15"/>
-                            </Grid>
-                            <TextBlock Text="{l:Tr Payload.Okay}" HorizontalAlignment="Center" Margin="0,6,0,0"
-                                       FontSize="11.5" FontWeight="Bold"
-                                       Foreground="{StaticResource TealBrush}"/>
-                        </StackPanel>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Ring" Property="StrokeThickness" Value="3.2"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Button.Template>
+                <StackPanel Background="Transparent">
+                    <Grid Width="46" Height="46">
+                        <Ellipse Classes="Ring" Stroke="{StaticResource TealBrush}"
+                                 StrokeThickness="2.4" Fill="#1A2DD4BF"/>
+                        <Path Stroke="{StaticResource TealBrush}" StrokeThickness="3"
+                              StrokeLineCap="Round"
+                              Data="M 13,24 L 20,31 L 33,15"/>
+                    </Grid>
+                    <TextBlock Text="{l:Tr Payload.Okay}" HorizontalAlignment="Center" Margin="0,6,0,0"
+                               FontSize="11.5" FontWeight="Bold"
+                               Foreground="{StaticResource TealBrush}"/>
+                </StackPanel>
             </Button>
         </StackPanel>
     </Border>

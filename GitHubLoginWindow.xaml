@@ -1,14 +1,13 @@
-<Window x:Class="SwitchCfwTool.GitHubLoginWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:SwitchCfwTool.Localization"
+        x:Class="SwitchCfwTool.GitHubLoginWindow"
         Title="{l:Tr GitHub.Title}" Width="440" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        CanResize="False"
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextBrush}"
-        Icon="Assets/appicon.ico"
-        TextOptions.TextFormattingMode="Ideal">
+        Icon="avares://Switch-CFW-Tool/Assets/appicon.ico">
     <Border Background="{StaticResource PanelBrush}" CornerRadius="12" Margin="18"
             BorderThickness="1" BorderBrush="{StaticResource BorderBrushSubtle}" Padding="20,18">
         <StackPanel>
@@ -18,29 +17,22 @@
                        Foreground="{StaticResource MutedBrush}"
                        Text="{l:Tr GitHub.Description}"/>
 
-            <TextBlock Margin="0,12,0,0" TextAlignment="Center">
-                <Hyperlink NavigateUri="https://github.com/settings/tokens/new"
-                           RequestNavigate="Links_Navigate"
-                           Foreground="{StaticResource TealBrush}">
-                    <Run Text="{l:Tr GitHub.CreateToken}" FontWeight="SemiBold"/>
-                </Hyperlink>
-            </TextBlock>
+            <Button Classes="LinkButton" Margin="0,12,0,0" HorizontalAlignment="Center"
+                    Click="Link_Click" Tag="https://github.com/settings/tokens/new">
+                <TextBlock Text="{l:Tr GitHub.CreateToken}" FontWeight="SemiBold"
+                           TextDecorations="Underline"/>
+            </Button>
 
             <TextBlock Text="{l:Tr GitHub.TokenLabel}" FontSize="10.5" FontWeight="Bold" Margin="0,16,0,6"
                        TextAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
-            <PasswordBox x:Name="TokenBox" Padding="8,6"/>
+            <TextBox x:Name="TokenBox" PasswordChar="•" Padding="8,6"/>
 
             <TextBlock x:Name="StatusText" Margin="0,10,0,0" FontSize="12" FontWeight="SemiBold"
                        TextAlignment="Center" TextWrapping="Wrap"/>
 
-            <Grid Margin="0,16,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <Grid Margin="0,16,0,0" ColumnDefinitions="Auto,*,Auto">
                 <Button Grid.Column="0" Content="{l:Tr GitHub.LogOut}" Padding="14,6" Click="LogOut_Click"/>
-                <Button Grid.Column="2" Content="{l:Tr GitHub.Save}" Style="{StaticResource PrimaryButton}"
+                <Button Grid.Column="2" Content="{l:Tr GitHub.Save}" Classes="PrimaryButton"
                         Padding="18,6" Click="Save_Click"/>
             </Grid>
         </StackPanel>

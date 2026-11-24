@@ -1,7 +1,6 @@
-using System;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Navigation;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media;
 using SwitchCfwTool.Services;
 
 namespace SwitchCfwTool;
@@ -11,14 +10,17 @@ public partial class GitHubLoginWindow : Window
     private static readonly SolidColorBrush SuccessBrush = new(Color.FromRgb(0x4A, 0xDE, 0x9E));
     private static readonly SolidColorBrush MutedBrush = new(Color.FromRgb(0x9A, 0x9A, 0xB8));
 
-    private readonly GitHubService _github;
+    private readonly GitHubService _github = null!;
 
-    public GitHubLoginWindow(GitHubService github)
+    public GitHubLoginWindow()
     {
         InitializeComponent();
         TitleBarTheme.Apply(this);
-        _github = github;
+    }
 
+    public GitHubLoginWindow(GitHubService github) : this()
+    {
+        _github = github;
         UpdateStatus();
     }
 
@@ -36,29 +38,33 @@ public partial class GitHubLoginWindow : Window
         }
     }
 
-    private void Save_Click(object sender, RoutedEventArgs e)
+    private async void Save_Click(object? sender, RoutedEventArgs e)
     {
-        var token = TokenBox.Password.Trim();
+        var token = (TokenBox.Text ?? "").Trim();
         if (string.IsNullOrEmpty(token))
         {
-            MessageDialog.Show(this, Loc.T("GitHub.Title"), Loc.T("GitHub.NoToken.Headline"),
+            await MessageDialog.Show(this, Loc.T("GitHub.Title"), Loc.T("GitHub.NoToken.Headline"),
                 Loc.T("GitHub.NoToken.Message"));
             return;
         }
 
         _github.UseToken(token);
         GitHubTokenStore.Save(token);
-        TokenBox.Password = "";
+        TokenBox.Text = "";
         UpdateStatus();
     }
 
-    private void LogOut_Click(object sender, RoutedEventArgs e)
+    private void LogOut_Click(object? sender, RoutedEventArgs e)
     {
         _github.UseToken(null);
         GitHubTokenStore.Clear();
-        TokenBox.Password = "";
+        TokenBox.Text = "";
         UpdateStatus();
     }
 
-private void Links_Navigate(object sender, RequestNavigateEventArgs e) => Links.Navigate(sender, e);
+    private void Link_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string url })
+            Links.Open(url);
+    }
 }

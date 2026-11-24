@@ -1,24 +1,46 @@
-# Switch-CFW-Tool
+<p align="center">
+  <img src="Assets/appicon.ico" width="96" alt="Switch-CFW-Tool" />
+</p>
 
-Windows tool (C# / WPF, .NET 8) for automatically assembling a ready-to-use `SDMC` folder
+<h1 align="center">Switch-CFW-Tool</h1>
+
+<p align="center">
+  <strong>Latest version: v1.2</strong> · Windows · Linux · macOS
+</p>
+
+Cross-platform tool (C# / Avalonia UI, .NET 8) for automatically assembling a ready-to-use `SDMC` folder
 from Hekate, Atmosphère, sys-patch and other homebrew tools, or for updating an existing SD
-card directly.
+card directly on Windows, Linux, and macOS.
+
+## Downloads
+
+Pre-built self-contained binaries (no .NET runtime required) are available for:
+
+- **Windows** (`win-x64`) – `.zip`
+- **Linux** (`linux-x64`) – `.tar.gz`
+- **macOS Apple Silicon** (`osx-arm64`) – `.tar.gz`
+- **macOS Intel** (`osx-x64`) – `.tar.gz`
+
+Download the latest release from the [Releases](../../releases) page, or grab the latest CI build artifacts from [GitHub Actions](../../actions/workflows/build.yml).
 
 ## Building
 
-Requirement: [.NET 8 SDK](https://dotnet.microsoft.com/download) on a Windows machine.
+Requirement: [.NET 8 SDK](https://dotnet.microsoft.com/download) (or newer).
 
 ```
 dotnet build -c Release
 ```
 
-For a finished, self-contained `.exe` (no .NET runtime install needed on the user's side):
+For a finished, self-contained binary (no .NET runtime install needed on the user's side):
 
 ```
 dotnet publish -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true
+dotnet publish -c Release -r linux-x64 -p:SelfContained=true -p:PublishSingleFile=true
+dotnet publish -c Release -r osx-arm64 -p:SelfContained=true -p:PublishSingleFile=true
+dotnet publish -c Release -r osx-x64 -p:SelfContained=true -p:PublishSingleFile=true
 ```
 
-The `.exe` then ends up at `bin/Release/net8.0-windows/win-x64/publish/Switch-CFW-Tool.exe`.
+The binary then ends up at `bin/Release/net8.0/<rid>/publish/Switch-CFW-Tool` (or `.exe` on Windows).
 
 For a release, run `build-release.cmd` (double-click) instead. It publishes as above and packs the
 result into `release/Switch-CFW-Tool-v<Version>.zip`, containing a `Switch CFW Tool` folder with
@@ -53,7 +75,7 @@ the `.exe` and `LICENSE`. The version comes from `<Version>` in `Switch-CFW-Tool
 - Boot-integrity check after the build
 - Help → Log: shows/hides the output log (hidden by default)
 - Help → FAQ: placeholder window, content coming later
-- Language menu: English (default), Deutsch, Español, Français and Português (Brasil), switchable at runtime. The choice is remembered in `%AppData%\Switch-CFW-Tool\language.txt`; picking English again deletes that file. The Quick Tour marker and the GitHub token live in the same folder, so the program's own folder stays nothing but the exe and `LICENSE`
+- Language menu: English (default), Deutsch, Español, Français and Português (Brasil), switchable at runtime. Settings (`language.txt`, `quicktour.done`, `github_token.bin`) are stored in your user config directory (`%AppData%\Switch-CFW-Tool` on Windows, `~/Library/Application Support/Switch-CFW-Tool` on macOS, `~/.config/Switch-CFW-Tool` on Linux), so the program's own folder stays nothing but the binary and `LICENSE`
 
 ## Translations
 

@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 
 $root       = $PSScriptRoot
 $project    = Join-Path $root "Switch-CFW-Tool.csproj"
-$publishDir = Join-Path $root "bin\Release\net8.0-windows\win-x64\publish"
+$publishDir = Join-Path $root "bin\Release\net8.0\win-x64\publish"
 $releaseDir = Join-Path $root "release"
 $folderName = "Switch CFW Tool"
 $stageDir   = Join-Path $releaseDir $folderName

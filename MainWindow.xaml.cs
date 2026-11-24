@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.IO;
 using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Media;
-using System.Windows.Threading;
-using Microsoft.Win32;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using SwitchCfwTool.Data;
 using SwitchCfwTool.Models;
 using SwitchCfwTool.Services;
@@ -21,12 +21,6 @@ public partial class MainWindow : Window
     private readonly List<ToolSelectionItem> _items = new();
     private readonly GitHubService _github = new();
 
-    // Which of the two ways to build is in effect. This is not about detecting an SD card —
-    // it records whether the output path is an existing card layout to write into (set by
-    // Manage CFW), or a plain folder to assemble and copy across later (the Output folder
-    // field, which always creates an SDMC subfolder inside it). The distinction decides both
-    // whether to append that subfolder and whether the install record can be merged straight
-    // away or has to be handed over as an import file.
     private bool _writingIntoExistingCard;
 
     public MainWindow()
@@ -39,18 +33,11 @@ public partial class MainWindow : Window
             _items.Add(new ToolSelectionItem(tool));
         }
 
-        // In Custom mode a tool's version list is only fetched once it's actually checked
-        // (see FetchVersionsForSelectedAsync), so checking one later has to trigger it too.
         foreach (var item in _items)
         {
             item.PropertyChanged += async (_, args) =>
             {
                 if (args.PropertyName != nameof(ToolSelectionItem.IsSelected)) return;
-
-                // Switching modes flips IsSelected on every item as a side effect. Those
-                // notifications aren't user actions, and reacting to them mid-switch reads
-                // the list while half the items still report the old mode's tick state —
-                // which fetched versions for tools that aren't selected in the new mode.
                 if (_switchingMode) return;
 
                 if (RadioCustom?.IsChecked == true)
@@ -58,24 +45,22 @@ public partial class MainWindow : Window
                 else
                     await FetchLatestLabelsAsync();
 
-                // Deferred so the checkbox binding has finished updating before a modal
-                // dialog can interrupt it. Deliberately not awaited — the handler shouldn't
-                // stay alive waiting on a dialog the user may leave open; the discard makes
-                // that intent explicit instead of leaving a compiler warning behind.
                 if (item.IsSelected)
-                    _ = Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Dispatcher.UIThread.Post(async () =>
                     {
-                        CheckConflicts(item);
-                        AskAboutOptionalExtra(item);
-                        AskAboutAccountNotice(item);
-                    }), DispatcherPriority.Background);
+                        await CheckConflictsAsync(item);
+                        await AskAboutOptionalExtraAsync(item);
+                        await AskAboutAccountNoticeAsync(item);
+                    }, DispatcherPriority.Background);
+                }
             };
         }
 
         ToolsList.ItemsSource = _items;
 
-        OutputPathBox.TextChanged += (_, _) => RefreshTarget();
-        RefreshTarget();
+        OutputPathBox.TextChanged += async (_, _) => await RefreshTargetAsync();
+        _ = RefreshTargetAsync();
 
         var savedToken = GitHubTokenStore.Load();
         if (savedToken != null)
@@ -84,14 +69,9 @@ public partial class MainWindow : Window
         BuildLanguageMenu();
         Loc.LanguageChanged += OnLanguageChanged;
 
-        // Deferred to Loaded so the window is laid out before the tour measures anything.
-        Loaded += (_, _) => OfferQuickTourOnFirstRun();
+        Opened += async (_, _) => await OfferQuickTourOnFirstRunAsync();
     }
 
-    /// <summary>
-    /// One entry per language file. Each is listed under its own name ("Português (Brasil)"
-    /// rather than a translation of it), so the way back is recognisable from any language.
-    /// </summary>
     private void BuildLanguageMenu()
     {
         MenuLanguage.Items.Clear();
@@ -102,39 +82,38 @@ public partial class MainWindow : Window
             {
                 Header = language.Name,
                 Tag = language.Code,
-                IsCheckable = true,
+                ToggleType = MenuItemToggleType.CheckBox,
                 IsChecked = language.Code == Loc.Current
             };
+            entry.Classes.Set("CheckedMenuItem", entry.IsChecked);
+
             entry.Click += (_, _) =>
             {
                 Loc.SetLanguage(language.Code);
 
-                // A checkable item toggles itself on click, so clicking the active language
-                // would untick it; the ticks are always re-derived from what is in effect.
                 foreach (var item in MenuLanguage.Items.OfType<MenuItem>())
-                    item.IsChecked = (string)item.Tag == Loc.Current;
+                {
+                    var active = (string?)item.Tag == Loc.Current;
+                    item.IsChecked = active;
+                    item.Classes.Set("CheckedMenuItem", active);
+                }
             };
             MenuLanguage.Items.Add(entry);
         }
     }
 
-    /// <summary>
-    /// Everything bound in XAML follows a switch by itself; this covers the few texts that are
-    /// set from code. Log lines already written stay as they are.
-    /// </summary>
     private void OnLanguageChanged()
     {
         TargetKindLabel.Text = Loc.T(_writingIntoExistingCard ? "Main.Target.SdCard" : "Main.Target.PcFolder");
 
-        if (StatusText.Visibility == Visibility.Visible)
+        if (StatusText.IsVisible)
             ShowBuildResult();
     }
 
-    private async void VersionMode_Changed(object sender, RoutedEventArgs e)
+    private async void VersionMode_Changed(object? sender, RoutedEventArgs e)
     {
-        // Fires once during InitializeComponent() itself (RadioLatest starts IsChecked="True"),
-        // at which point RadioCustom hasn't been created by the XAML loader yet -> guard against that.
         if (RadioCustom == null || RadioLatest == null) return;
+        if (sender is RadioButton { IsChecked: not true }) return;
 
         bool custom = RadioCustom.IsChecked == true;
 
@@ -143,8 +122,6 @@ public partial class MainWindow : Window
         {
             item.CustomMode = custom;
 
-            // Guard against a version lingering on a tool that isn't ticked in this mode,
-            // which would otherwise sit behind the "select this tool" placeholder.
             if (custom && !item.IsSelected)
                 item.SelectedVersion = null;
         }
@@ -158,11 +135,6 @@ public partial class MainWindow : Window
         await FetchVersionsForSelectedAsync();
     }
 
-    /// <summary>
-    /// Looks up the version "Latest" would actually install, for display next to each
-    /// selected tool. Restricted to selected tools so switching modes doesn't fire two
-    /// dozen GitHub requests at once and exhaust the anonymous rate limit.
-    /// </summary>
     private async Task FetchLatestLabelsAsync()
     {
         foreach (var item in _items.Where(i => i.IsSelected && string.IsNullOrEmpty(i.LatestLabel)))
@@ -179,13 +151,6 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// The version to show for a release. Normally the tag, but for tools whose tag and
-    /// attached file can disagree it is taken from the filename, so the number on screen is
-    /// the one that actually gets installed. The actual filename → version parsing lives in
-    /// <see cref="ToolInstaller.DescribeVersion"/>; this only resolves which asset to read it
-    /// from, so the two don't drift apart into two slightly different regexes.
-    /// </summary>
     private static string DescribeVersion(CfwTool tool, GitHubRelease release)
     {
         if (!tool.VersionFromAssetName) return release.TagName;
@@ -197,23 +162,17 @@ public partial class MainWindow : Window
         }
         catch
         {
-            // No usable asset in this release — fall back to the tag.
             return release.TagName;
         }
     }
 
-    // Set while a conflict dialog is undoing a selection, so clearing the checkbox doesn't
-    // immediately re-enter the conflict check for the tool being switched off.
     private bool _resolvingConflict;
-
-    // Set while Latest/Custom is being applied to every item, see the handler above.
     private bool _switchingMode;
 
-    private void CheckConflicts(ToolSelectionItem item)
+    private async Task CheckConflictsAsync(ToolSelectionItem item)
     {
         if (_resolvingConflict || !item.IsSelected) return;
 
-        // Declared on either side, so both orders of selection are covered.
         var clash = _items.FirstOrDefault(other =>
             other != item && other.IsSelected &&
             (item.Tool.ConflictsWith.Contains(other.Tool.Id) ||
@@ -229,9 +188,9 @@ public partial class MainWindow : Window
             reason,
             Loc.T("Main.Conflict.Question", item.Tool.DisplayName),
             Loc.T("Main.Conflict.Remove"),
-            Loc.T("Main.Conflict.KeepBoth")) { Owner = this };
+            Loc.T("Main.Conflict.KeepBoth"));
 
-        if (dialog.ShowDialog() == true)
+        if (await dialog.ShowDialog<bool>(this) == true)
         {
             _resolvingConflict = true;
             item.IsSelected = false;
@@ -244,11 +203,6 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Fetches release lists for Custom mode. Deliberately limited to CHECKED tools:
-    /// fetching all 24 up front burned most of GitHub's anonymous 60-requests-per-hour
-    /// budget in one click, which then made the actual build fail for every tool at once.
-    /// </summary>
     private async Task FetchVersionsForSelectedAsync()
     {
         foreach (var item in _items.Where(i =>
@@ -260,62 +214,56 @@ public partial class MainWindow : Window
 
     private async Task FetchVersionsForAsync(ToolSelectionItem item)
     {
-            try
+        try
+        {
+            var releases = await _github.GetAllReleasesAsync(item.Tool.GitHubRepo!);
+            var options = new List<VersionOption>();
+            foreach (var r in releases)
             {
-                var releases = await _github.GetAllReleasesAsync(item.Tool.GitHubRepo!);
-                var options = new List<VersionOption>();
-                foreach (var r in releases)
+                try
                 {
-                    // A release whose assets don't match this tool's pattern isn't
-                    // selectable — skip it rather than letting SelectAsset throw here.
-                    try
+                    var asset = GitHubService.SelectAsset(r, item.Tool.AssetNamePattern, item.Tool.VersionFromAssetName);
+                    if (asset != null && !string.IsNullOrEmpty(asset.BrowserDownloadUrl))
                     {
-                        var asset = GitHubService.SelectAsset(r, item.Tool.AssetNamePattern, item.Tool.VersionFromAssetName);
-                        if (asset != null && !string.IsNullOrEmpty(asset.BrowserDownloadUrl))
+                        options.Add(new VersionOption
                         {
-                            options.Add(new VersionOption
-                            {
-                                TagName = DescribeVersion(item.Tool, r),
-                                DownloadUrl = asset.BrowserDownloadUrl,
-                                AssetFileName = asset.Name
-                            });
-                        }
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        // no usable asset in this particular release — ignore it
+                            TagName = DescribeVersion(item.Tool, r),
+                            DownloadUrl = asset.BrowserDownloadUrl,
+                            AssetFileName = asset.Name
+                        });
                     }
                 }
-
-                item.AvailableVersions = options;
-                item.SelectedVersion ??= options.FirstOrDefault();
+                catch (InvalidOperationException)
+                {
+                    // no usable asset in this particular release — ignore it
+                }
             }
-            catch (Exception ex)
-            {
-                Log(Loc.T("Log.Main.ReleaseListFailed", item.Tool.DisplayName, ex.Message), LogKind.Error);
-            }
-    }
 
-    private void Browse_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new OpenFolderDialog
+            item.AvailableVersions = options;
+            item.SelectedVersion ??= options.FirstOrDefault();
+        }
+        catch (Exception ex)
         {
-            Title = Loc.T("Main.Browse.Title")
-        };
-
-        if (dialog.ShowDialog() == true)
-            OutputPathBox.Text = dialog.FolderName;
+            Log(Loc.T("Log.Main.ReleaseListFailed", item.Tool.DisplayName, ex.Message), LogKind.Error);
+        }
     }
 
-    /// <summary>
-    /// Works out what the chosen path is and says so. Writing straight onto a card and
-    /// building a folder to copy across differ in where files land, so it is shown rather
-    /// than left for the user to infer.
-    /// </summary>
-    private void RefreshTarget()
+    private async void Browse_Click(object? sender, RoutedEventArgs e)
     {
-        var path = OutputPathBox.Text.Trim();
-        TargetHint.Visibility = string.IsNullOrEmpty(path) ? Visibility.Visible : Visibility.Collapsed;
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = Loc.T("Main.Browse.Title"),
+            AllowMultiple = false
+        });
+
+        if (folders.Count > 0)
+            OutputPathBox.Text = folders[0].Path.LocalPath;
+    }
+
+    private async Task RefreshTargetAsync()
+    {
+        var path = (OutputPathBox.Text ?? "").Trim();
+        TargetHint.IsVisible = string.IsNullOrEmpty(path);
 
         if (string.IsNullOrEmpty(path))
         {
@@ -330,13 +278,10 @@ public partial class MainWindow : Window
         switch (info.Kind)
         {
             case TargetKind.SdCard:
-                SetCardTarget(true, info);
+                await SetCardTargetAsync(true, info);
                 break;
 
             case TargetKind.Ambiguous when !string.Equals(_askedAbout, path, StringComparison.OrdinalIgnoreCase):
-                // A drive root that Windows doesn't report as removable. Built-in card
-                // readers often look like this, but so does a second hard disk — so it is
-                // asked rather than assumed.
                 _askedAbout = path;
 
                 var size = info.TotalBytes > 0 ? $"{info.TotalBytes / 1024 / 1024 / 1024} GB, " : "";
@@ -345,21 +290,21 @@ public partial class MainWindow : Window
                     $"{path}  ({size}{info.FileSystem})\n\n" + Loc.T("Main.AskCard.Reason"),
                     Loc.T("Main.AskCard.Question"),
                     Loc.T("Main.AskCard.SdCard"),
-                    Loc.T("Main.AskCard.PcFolder")) { Owner = this };
+                    Loc.T("Main.AskCard.PcFolder"));
 
-                SetCardTarget(answer.ShowDialog() == true, info);
+                await SetCardTargetAsync(await answer.ShowDialog<bool>(this) == true, info);
                 break;
 
             case TargetKind.Ambiguous:
-                break;   // already answered for this path
+                break;
 
             default:
-                SetCardTarget(false, info);
+                await SetCardTargetAsync(false, info);
                 break;
         }
     }
 
-    private void SetCardTarget(bool isCard, TargetInfo info)
+    private async Task SetCardTargetAsync(bool isCard, TargetInfo info)
     {
         _writingIntoExistingCard = isCard;
         TargetKindLabel.Text = Loc.T(isCard ? "Main.Target.SdCard" : "Main.Target.PcFolder");
@@ -371,15 +316,10 @@ public partial class MainWindow : Window
             Log(Loc.T("Log.Main.FileSystemWarning", info.FileSystem), LogKind.Info);
         }
 
-        WarnIfCardAlreadySetUp(OutputPathBox.Text.Trim());
+        await WarnIfCardAlreadySetUpAsync((OutputPathBox.Text ?? "").Trim());
     }
 
-    /// <summary>
-    /// Says so when the chosen card already carries a CFW. Building writes over the files it
-    /// installs, and finding that out afterwards is a poor way to learn it — especially on a
-    /// card set up elsewhere, where the existing install can't be managed from here.
-    /// </summary>
-    private void WarnIfCardAlreadySetUp(string cardRoot)
+    private async Task WarnIfCardAlreadySetUpAsync(string cardRoot)
     {
         if (string.Equals(_warnedAboutCard, cardRoot, StringComparison.OrdinalIgnoreCase)) return;
 
@@ -392,12 +332,12 @@ public partial class MainWindow : Window
 
             var known = InstallManifest.Load(cardRoot).Count > 0;
 
-            new MessageDialog(
+            await new MessageDialog(
                 Loc.T("Main.ExistingCfw.Title"),
                 Loc.T("Main.ExistingCfw.Headline"),
                 Loc.T("Main.ExistingCfw.Found", string.Join(", ", existing.Parts)) + "\n\n"
                 + Loc.T(known ? "Main.ExistingCfw.Known" : "Main.ExistingCfw.Unknown")
-                ) { Owner = this }.ShowDialog();
+                ).ShowDialog(this);
         }
         catch
         {
@@ -405,26 +345,18 @@ public partial class MainWindow : Window
         }
     }
 
-    // The card the "already set up" notice was last shown for, so it appears once per card
-    // rather than on every keystroke in the path box.
     private string? _warnedAboutCard;
-
-    // The path the removable-or-not question was last answered for. Keyed by path rather
-    // than a plain flag so switching to a different drive asks again, while typing in the
-    // box does not re-ask about the same one.
     private string? _askedAbout;
 
-    private void Theming_Click(object sender, RoutedEventArgs e)
+    private async void Theming_Click(object? sender, RoutedEventArgs e)
     {
-        // The window carries its own SD Card field, so it opens straight away; a path is
-        // only pre-filled when one is already known from a build aimed at a card.
-        var suggested = _writingIntoExistingCard ? OutputPathBox.Text.Trim() : null;
-        new ThemingWindow(suggested) { Owner = this }.ShowDialog();
+        var suggested = _writingIntoExistingCard ? (OutputPathBox.Text ?? "").Trim() : null;
+        await new ThemingWindow(suggested).ShowDialog(this);
     }
 
     private QuickTour? _tour;
 
-    private void QuickTour_Click(object sender, RoutedEventArgs e) => StartQuickTour();
+    private void QuickTour_Click(object? sender, RoutedEventArgs e) => StartQuickTour();
 
     private void StartQuickTour()
     {
@@ -436,8 +368,6 @@ public partial class MainWindow : Window
     {
         _tour ??= new QuickTour(this, TourHost);
 
-        // Recorded only once the tour is actually seen through to the end. Closing the window
-        // or pressing Esc part-way leaves nothing behind, so the offer returns next start.
         void OnCompleted()
         {
             _tour!.Completed -= OnCompleted;
@@ -448,11 +378,6 @@ public partial class MainWindow : Window
         _tour.Start(BuildTourSteps());
     }
 
-    /// <summary>
-    /// The walkthrough, in the order someone would actually work through the window: the two
-    /// mode choices, the tool list, where it goes, the build button, and finally what lives
-    /// behind each menu.
-    /// </summary>
     private List<TourStep> BuildTourSteps() => new()
     {
         new TourStep
@@ -467,8 +392,6 @@ public partial class MainWindow : Window
         },
         new TourStep
         {
-            // Narrowed to the checkbox column and the first few rows, so the highlight sits
-            // on the controls being described instead of on the whole list.
             Target = () => ToolsList,
             MaxHeight = 178,
             MaxWidth = 46,
@@ -507,8 +430,7 @@ public partial class MainWindow : Window
         },
     };
 
-    /// <summary>Offered once, on the very first start.</summary>
-    private void OfferQuickTourOnFirstRun()
+    private async Task OfferQuickTourOnFirstRunAsync()
     {
         if (!FirstRun.ShouldOfferTour()) return;
 
@@ -517,63 +439,58 @@ public partial class MainWindow : Window
             Loc.T("Main.Welcome.Reason"),
             Loc.T("Main.Welcome.Question"),
             Loc.T("Common.Yes"),
-            Loc.T("Common.No")) { Owner = this };
+            Loc.T("Common.No"));
 
-        if (ask.ShowDialog() == true)
-            Dispatcher.BeginInvoke(new Action(StartQuickTourAsFirstRun), DispatcherPriority.Background);
+        if (await ask.ShowDialog<bool>(this) == true)
+            Dispatcher.UIThread.Post(StartQuickTourAsFirstRun, DispatcherPriority.Background);
         else
-            FirstRun.MarkOffered();   // declined outright — don't ask again
+            FirstRun.MarkOffered();
     }
 
-    private void ManageCfw_Click(object sender, RoutedEventArgs e)
+    private async void ManageCfw_Click(object? sender, RoutedEventArgs e)
     {
-        // Installing and removing happen inside that window now, so nothing is handed back
-        // here; its own log lines go into this window's log.
-        var suggested = _writingIntoExistingCard ? OutputPathBox.Text.Trim() : null;
-        new ManageCfwWindow(suggested, _github, Log) { Owner = this }.ShowDialog();
+        var suggested = _writingIntoExistingCard ? (OutputPathBox.Text ?? "").Trim() : null;
+        await new ManageCfwWindow(suggested, _github, Log).ShowDialog(this);
     }
 
-    private void Info_Click(object sender, RoutedEventArgs e)
+    private async void Info_Click(object? sender, RoutedEventArgs e)
     {
-        new InfoWindow { Owner = this }.ShowDialog();
+        await new InfoWindow().ShowDialog(this);
     }
 
-    private void ToggleLog_Click(object sender, RoutedEventArgs e)
+    private void ToggleLog_Click(object? sender, RoutedEventArgs e)
     {
-        LogRow.Height = new GridLength(LogMenuItem.IsChecked ? 180 : 0);
+        LogMenuItem.Classes.Set("CheckedMenuItem", LogMenuItem.IsChecked);
+        MainGrid.RowDefinitions[5].Height = new GridLength(LogMenuItem.IsChecked ? 180 : 0);
     }
 
-    private async void Build_Click(object sender, RoutedEventArgs e)
+    private async void Build_Click(object? sender, RoutedEventArgs e)
     {
         var selected = _items.Where(i => i.IsSelected).ToList();
         if (selected.Count == 0)
         {
-            MessageDialog.Show(this, Loc.T("Main.NoTools.Title"), Loc.T("Main.NoTools.Headline"),
+            await MessageDialog.Show(this, Loc.T("Main.NoTools.Title"), Loc.T("Main.NoTools.Headline"),
                 Loc.T("Main.NoTools.Message"));
             return;
         }
 
-        var basePath = OutputPathBox.Text.Trim();
+        var basePath = (OutputPathBox.Text ?? "").Trim();
         if (string.IsNullOrWhiteSpace(basePath))
         {
-            MessageDialog.Show(this, Loc.T("Main.NoOutput.Title"), Loc.T("Main.NoOutput.Headline"),
+            await MessageDialog.Show(this, Loc.T("Main.NoOutput.Title"), Loc.T("Main.NoOutput.Headline"),
                 Loc.T("Main.NoOutput.Message"));
             return;
         }
 
-        // Asked last, so the user isn't made to confirm a warning only to hit a validation
-        // error straight afterwards.
-        if (!ConfirmSysmoduleLoad(selected)) return;
+        if (!await ConfirmSysmoduleLoadAsync(selected)) return;
 
-        // Direct SD card mode: basePath IS the SD root already. Otherwise create/use a
-        // "SDMC" subfolder inside the chosen output folder.
         var sdRoot = _writingIntoExistingCard ? basePath : Path.Combine(basePath, "SDMC");
 
         BuildButton.IsEnabled = false;
         BuildProgress.Value = 0;
         BuildProgress.Maximum = selected.Count;
-        LogBox.Document.Blocks.Clear();
-        StatusText.Visibility = Visibility.Collapsed;
+        LogPanel.Children.Clear();
+        StatusText.IsVisible = false;
         _failedTools = 0;
         _bootIntegrityProblems = 0;
         _fatalError = null;
@@ -581,9 +498,6 @@ public partial class MainWindow : Window
 
         var stagingRoot = Path.Combine(Path.GetTempPath(), "SwitchCfwTool_staging");
 
-        // Wipe leftovers from previous runs: a stale file with a matching extension could
-        // otherwise be picked up by the archive fallback search in SdCardBuilder and end
-        // up on the SD card instead of the freshly downloaded one.
         try
         {
             if (Directory.Exists(stagingRoot))
@@ -621,32 +535,23 @@ public partial class MainWindow : Window
                 BuildProgress.Value += 1;
             }
 
-            // Only relevant if Hekate was selected — the ini/icons are meaningless without it,
-            // and this must run after Hekate's own merge so it doesn't touch anything Hekate ships.
             if (selected.Any(i => i.Tool.Id == "hekate"))
             {
                 Log(Loc.T("Log.Main.AddingHekateAssets"));
                 var createdInis = bundledAssets.ExtractHekateAssets(sdRoot);
                 var iniService = new HekateIniService();
 
-                // Read from the manifest, not from this run's selection: a KIP tool installed
-                // by an earlier build is still on the card and its entries must stay.
                 var anyKipTool = InstallManifest.HasKipTool(sdRoot);
 
-                // Mode trimming only touches files just written, so an ini the user already
-                // edited keeps every entry they put in it.
                 foreach (var ini in createdInis)
                     iniService.FilterSections(ini, mmcMode, anyKipTool);
 
-                // The KIP parts are maintained on every build, since a tool may have been
-                // added or removed since the ini was first written.
                 iniService.SyncKipUsage(sdRoot, anyKipTool);
 
                 Log(Loc.T(anyKipTool ? "Log.Main.BootEntriesWithKip" : "Log.Main.BootEntriesNoKip", mmcMode),
                     LogKind.Info);
             }
 
-            // Only relevant if at least one MMC-relevant (Atmosphère-based) tool was selected.
             if (selected.Any(i => i.Tool.MmcRelevant))
             {
                 Log(Loc.T("Log.Main.WritingExosphere", mmcMode));
@@ -676,19 +581,11 @@ public partial class MainWindow : Window
             ProgressBarAnimation.SetIsAnimating(BuildProgress, false);
             ShowBuildResult();
 
-            // Tied to the file actually existing rather than to Hekate being ticked: without
-            // a payload.bin the advice has nothing to refer to and would only be noise.
             if (_fatalError == null && File.Exists(Path.Combine(sdRoot, "payload.bin")))
-                new PayloadNoticeDialog { Owner = this }.ShowDialog();
+                await new PayloadNoticeDialog().ShowDialog(this);
         }
     }
 
-    /// <summary>
-    /// Brings the secmon= lines in hekate_ipl.ini in line with what this build actually
-    /// put on the card (see HekateIniService for why this matters), and reports what
-    /// changed so the log makes the reasoning visible rather than silently rewriting
-    /// the user's boot config.
-    /// </summary>
     private void SyncSecmonLines(string sdRoot)
     {
         try
@@ -710,25 +607,13 @@ public partial class MainWindow : Window
         }
     }
 
-    // Outcome of the last build, summarised in StatusText so the result is visible even
-    // when the log panel is hidden. Kept as two separate counters rather than one shared
-    // total: a download failure and a fatal boot-integrity problem are different kinds of
-    // trouble with different fixes, and lumping them into one number produced a wrong
-    // explanation whenever the real cause was a boot-integrity problem, not a download.
     private int _failedTools;
     private int _bootIntegrityProblems;
     private string? _fatalError;
 
-
-
-    /// <summary>
-    /// Summarises how the build went next to the progress bar. Only genuine problems change
-    /// the wording or colour — routine notes (an adjusted secmon line, a cleared temp
-    /// folder) still count as a clean run, so a normal build always reads simply "DONE!".
-    /// </summary>
     private void ShowBuildResult()
     {
-        StatusText.Visibility = Visibility.Visible;
+        StatusText.IsVisible = true;
 
         if (_fatalError != null)
         {
@@ -737,8 +622,6 @@ public partial class MainWindow : Window
         }
         else if (_bootIntegrityProblems > 0)
         {
-            // Worth its own branch and its own colour: this means the card likely won't boot,
-            // which is a more serious outcome than a package that simply failed to download.
             StatusText.Foreground = ErrorBrush;
             StatusText.Text = _failedTools > 0
                 ? Loc.T("Main.Status.BootAndDownloadProblems", _failedTools)
@@ -758,11 +641,7 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Asks once, at selection time, whether an optional companion file should be fetched.
-    /// Asking here rather than mid-build keeps the build itself uninterrupted.
-    /// </summary>
-    private void AskAboutOptionalExtra(ToolSelectionItem item)
+    private async Task AskAboutOptionalExtraAsync(ToolSelectionItem item)
     {
         var extra = item.Tool.OptionalExtra;
         if (extra == null || item.OptionalExtraAsked) return;
@@ -770,16 +649,12 @@ public partial class MainWindow : Window
         item.OptionalExtraAsked = true;
 
         var dialog = new ChoiceDialog(extra.Headline, extra.Reason, extra.Question,
-            extra.YesLabel, extra.NoLabel) { Owner = this };
+            extra.YesLabel, extra.NoLabel);
 
-        item.OptionalExtraAccepted = dialog.ShowDialog() == true;
+        item.OptionalExtraAccepted = await dialog.ShowDialog<bool>(this) == true;
     }
 
-    /// <summary>
-    /// Tells the user a tool needs an account before it can be used, and offers to open the
-    /// sign-up page. Shown once per selection, like the optional extras.
-    /// </summary>
-    private void AskAboutAccountNotice(ToolSelectionItem item)
+    private async Task AskAboutAccountNoticeAsync(ToolSelectionItem item)
     {
         var notice = item.Tool.AccountNotice;
         if (notice == null || item.AccountNoticeAsked) return;
@@ -787,24 +662,22 @@ public partial class MainWindow : Window
         item.AccountNoticeAsked = true;
 
         var dialog = new AccountNoticeDialog(notice.Headline, notice.Reason, notice.Question,
-            notice.RegisterLabel, notice.HaveAccountLabel) { Owner = this };
+            notice.RegisterLabel, notice.HaveAccountLabel);
 
-        if (dialog.ShowDialog() == true)
+        if (await dialog.ShowDialog<bool>(this) == true)
             Links.Open(notice.Url);
     }
 
-    private void Faq_Click(object sender, RoutedEventArgs e)
+    private async void Faq_Click(object? sender, RoutedEventArgs e)
     {
-        new FaqWindow { Owner = this }.ShowDialog();
+        await new FaqWindow().ShowDialog(this);
     }
 
-    private void GitHubLogin_Click(object sender, RoutedEventArgs e)
+    private async void GitHubLogin_Click(object? sender, RoutedEventArgs e)
     {
-        new GitHubLoginWindow(_github) { Owner = this }.ShowDialog();
+        await new GitHubLoginWindow(_github).ShowDialog(this);
     }
 
-    // Tuned for the dark log panel: brighter, desaturated variants stay legible on #1C1C36,
-    // whereas the darker shades used on a light background would disappear into it.
     private static readonly SolidColorBrush ErrorBrush = new(Color.FromRgb(0xFF, 0x6B, 0x6B));
     private static readonly SolidColorBrush InfoBrush = new(Color.FromRgb(0xFF, 0xC8, 0x6B));
     private static readonly SolidColorBrush SuccessBrush = new(Color.FromRgb(0x4A, 0xDE, 0x9E));
@@ -812,15 +685,7 @@ public partial class MainWindow : Window
 
     private const int SysmoduleWarningThreshold = 7;
 
-    /// <summary>
-    /// Sysmodules auto-start at boot via their boot2.flag. Atmosphère's release notes for
-    /// firmware 21.0.0 record that roughly 10 MB less memory is available for custom system
-    /// modules than before, and stacking many of them can push boot2 past what's left — at
-    /// which point HOS dies immediately and simply lands back in Hekate with nothing on
-    /// screen to explain it. Asked before the build rather than only logged afterwards,
-    /// since by then the SD card is already written.
-    /// </summary>
-    private bool ConfirmSysmoduleLoad(List<ToolSelectionItem> selected)
+    private async Task<bool> ConfirmSysmoduleLoadAsync(List<ToolSelectionItem> selected)
     {
         var sysmodules = selected.Where(i => i.Tool.IsSysmodule).Select(i => i.Tool.DisplayName).ToList();
         if (sysmodules.Count < SysmoduleWarningThreshold) return true;
@@ -830,16 +695,11 @@ public partial class MainWindow : Window
             $"{string.Join(", ", sysmodules)}\n\n" + Loc.T("Main.Sysmodules.Reason"),
             Loc.T("Main.Sysmodules.Question"),
             Loc.T("Main.Sysmodules.Continue"),
-            Loc.T("Main.Sysmodules.Reselect")) { Owner = this };
+            Loc.T("Main.Sysmodules.Reselect"));
 
-        return dialog.ShowDialog() == true;
+        return await dialog.ShowDialog<bool>(this) == true;
     }
 
-    /// <summary>
-    /// Reports anything missing that the console needs to boot. Silent failures at boot are
-    /// hard to tell apart from a broken card or console, so it is worth saying plainly here
-    /// while the folder is still on the PC.
-    /// </summary>
     private void CheckBootIntegrity(string sdRoot, List<ToolSelectionItem> selected)
     {
         try
@@ -878,6 +738,12 @@ public partial class MainWindow : Window
 
     private void Log(string message, LogKind level = LogKind.Normal)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => Log(message, level));
+            return;
+        }
+
         var brush = level switch
         {
             LogKind.Error => ErrorBrush,
@@ -886,12 +752,16 @@ public partial class MainWindow : Window
             _ => NormalBrush
         };
 
-        var paragraph = new Paragraph(new Run(message) { Foreground = brush })
+        var line = new SelectableTextBlock
         {
-            Margin = new Thickness(0)   // RichTextBox spaces paragraphs by default; keep log lines tight
+            Text = message,
+            Foreground = brush,
+            FontFamily = new FontFamily("Consolas, Menlo, monospace"),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap
         };
 
-        LogBox.Document.Blocks.Add(paragraph);
-        LogBox.ScrollToEnd();
+        LogPanel.Children.Add(line);
+        LogScroller.ScrollToEnd();
     }
 }

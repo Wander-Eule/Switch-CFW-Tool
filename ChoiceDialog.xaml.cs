@@ -1,4 +1,5 @@
-using System.Windows;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 
 namespace SwitchCfwTool;
 
@@ -9,27 +10,22 @@ namespace SwitchCfwTool;
 /// </summary>
 public partial class ChoiceDialog : Window
 {
-    public ChoiceDialog(string headline, string reason, string question, string yesLabel, string noLabel)
+    public ChoiceDialog()
     {
         InitializeComponent();
         TitleBarTheme.Apply(this);
+    }
 
+    public ChoiceDialog(string headline, string reason, string question, string yesLabel, string noLabel) : this()
+    {
         HeadlineText.Text = headline;
         ReasonText.Text = reason;
         QuestionText.Text = question;
-        YesButton.Tag = yesLabel;
-        NoButton.Tag = noLabel;
+        YesLabelText.Text = yesLabel;
+        NoLabelText.Text = noLabel;
     }
 
-    private void Yes_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = true;
-        Close();
-    }
+    private void Yes_Click(object? sender, RoutedEventArgs e) => Close(true);
 
-    private void No_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
-        Close();
-    }
+    private void No_Click(object? sender, RoutedEventArgs e) => Close(false);
 }

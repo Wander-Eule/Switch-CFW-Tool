@@ -111,7 +111,8 @@ public sealed class Loc : INotifyPropertyChanged
         Current = code;
         LanguageSettings.Save(code);
 
-        // "Item[]" is the name WPF listens for to refresh every indexer binding at once.
+        // Notify all indexer bindings to refresh in place.
+        Instance.PropertyChanged?.Invoke(Instance, new PropertyChangedEventArgs("Item"));
         Instance.PropertyChanged?.Invoke(Instance, new PropertyChangedEventArgs("Item[]"));
         LanguageChanged?.Invoke();
     }

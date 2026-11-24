@@ -1,4 +1,5 @@
-using System.Windows;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 
 namespace SwitchCfwTool;
 
@@ -10,5 +11,5 @@ public partial class FaqWindow : Window
         TitleBarTheme.Apply(this);
     }
 
-    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+    private void Close_Click(object? sender, RoutedEventArgs e) => Close();
 }

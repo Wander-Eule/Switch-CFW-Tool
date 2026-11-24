@@ -39,33 +39,50 @@ public static class TargetDetection
 
         try
         {
-            var full = Path.GetFullPath(path);
-            var root = Path.GetPathRoot(full);
+            var comparison = OperatingSystem.IsLinux()
+                ? StringComparison.Ordinal
+                : StringComparison.OrdinalIgnoreCase;
 
-            // Anything below a drive root is a folder, whatever it sits on.
-            if (root == null || !string.Equals(
-                    full.TrimEnd(Path.DirectorySeparatorChar),
-                    root.TrimEnd(Path.DirectorySeparatorChar),
-                    StringComparison.OrdinalIgnoreCase))
+            var full = Path.GetFullPath(path);
+            var normalizedFull = TrimTrailingSeparator(full);
+
+            // Find a mounted drive whose root matches the chosen path. On Windows that's e.g.
+            // "E:\"; on macOS/Linux external drives mount under "/Volumes/..." or "/media/...".
+            DriveInfo? matchedDrive = null;
+            foreach (var d in DriveInfo.GetDrives())
             {
-                return new TargetInfo(TargetKind.PcFolder, null, 0, null);
+                if (string.Equals(normalizedFull, TrimTrailingSeparator(d.RootDirectory.FullName), comparison))
+                {
+                    matchedDrive = d;
+                    break;
+                }
             }
 
-            var drive = new DriveInfo(root);
-            if (!drive.IsReady)
+            if (matchedDrive == null)
+                return new TargetInfo(TargetKind.PcFolder, null, 0, null);
+
+            if (!matchedDrive.IsReady)
                 return new TargetInfo(TargetKind.PcFolder, null, 0, null);
 
             var info = new TargetInfo(
-                drive.DriveType == DriveType.Removable ? TargetKind.SdCard : TargetKind.Ambiguous,
-                drive.DriveFormat,
-                drive.TotalSize,
-                string.IsNullOrWhiteSpace(drive.VolumeLabel) ? null : drive.VolumeLabel);
+                matchedDrive.DriveType == DriveType.Removable ? TargetKind.SdCard : TargetKind.Ambiguous,
+                matchedDrive.DriveFormat,
+                matchedDrive.TotalSize,
+                string.IsNullOrWhiteSpace(matchedDrive.VolumeLabel) ? null : matchedDrive.VolumeLabel);
 
-            // The system drive is never a card, and asking about it would only invite a
-            // dangerous answer.
-            var windows = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
-            if (string.Equals(root, windows, StringComparison.OrdinalIgnoreCase))
-                return info with { Kind = TargetKind.PcFolder };
+            // The system drive / root filesystem is never an SD card, and asking about it
+            // would only invite a dangerous answer.
+            if (OperatingSystem.IsWindows())
+            {
+                var windows = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+                if (windows != null && string.Equals(normalizedFull, TrimTrailingSeparator(windows), comparison))
+                    return info with { Kind = TargetKind.PcFolder };
+            }
+            else
+            {
+                if (normalizedFull == "/" || normalizedFull.StartsWith("/System/Volumes", comparison))
+                    return info with { Kind = TargetKind.PcFolder };
+            }
 
             return info;
         }
@@ -77,9 +94,17 @@ public static class TargetDetection
         }
     }
 
+    private static string TrimTrailingSeparator(string path)
+    {
+        var trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return trimmed.Length == 0 ? Path.DirectorySeparatorChar.ToString() : trimmed;
+    }
+
     /// <summary>True when the drive uses a file system a Switch can read.</summary>
     public static bool IsSwitchCompatible(string? fileSystem)
         => fileSystem is not null
            && (fileSystem.Equals("FAT32", StringComparison.OrdinalIgnoreCase)
-               || fileSystem.Equals("exFAT", StringComparison.OrdinalIgnoreCase));
+               || fileSystem.Equals("exFAT", StringComparison.OrdinalIgnoreCase)
+               || fileSystem.Equals("vfat", StringComparison.OrdinalIgnoreCase)
+               || fileSystem.Equals("msdos", StringComparison.OrdinalIgnoreCase));
 }

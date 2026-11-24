@@ -2,7 +2,6 @@ using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using SwitchCfwTool.Models;
 
 namespace SwitchCfwTool.ViewModels;
@@ -95,23 +94,19 @@ public class ToolSelectionItem : INotifyPropertyChanged
     }
 
     // Only meaningful once the tool is actually selected and its version has been looked up.
-    public Visibility LatestVersionVisibility =>
-        (!CustomMode && IsSelected && !string.IsNullOrEmpty(LatestLabel))
-            ? Visibility.Visible
-            : Visibility.Collapsed;
+    public bool LatestVersionVisibility =>
+        !CustomMode && IsSelected && !string.IsNullOrEmpty(LatestLabel);
 
     // The dropdown and the hint below are mutually exclusive rather than stacked, so a
     // leftover selection can never show through the placeholder text.
-    public Visibility CustomVersionVisibility =>
-        (CustomMode && IsSelected) ? Visibility.Visible : Visibility.Collapsed;
+    public bool CustomVersionVisibility => CustomMode && IsSelected;
 
     /// <summary>
     /// Replaces the dropdown while the tool isn't selected. Version lists are only fetched
     /// for selected tools — each fetch is a GitHub request, and pulling one for all 31 tools
     /// would burn half the hourly budget before a build even starts.
     /// </summary>
-    public Visibility VersionHintVisibility =>
-        (CustomMode && !IsSelected) ? Visibility.Visible : Visibility.Collapsed;
+    public bool VersionHintVisibility => CustomMode && !IsSelected;
 
     private List<VersionOption> _availableVersions = new();
     public List<VersionOption> AvailableVersions

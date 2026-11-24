@@ -1,22 +1,14 @@
-<Window x:Class="SwitchCfwTool.ManageCfwWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:SwitchCfwTool.Localization"
+        x:Class="SwitchCfwTool.ManageCfwWindow"
         Title="{l:Tr Manage.Title}" Height="620" Width="640"
         MinHeight="420" MinWidth="560"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextBrush}"
-        Icon="Assets/appicon.ico"
-        TextOptions.TextFormattingMode="Ideal">
-    <Grid Margin="18">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
+        Icon="avares://Switch-CFW-Tool/Assets/appicon.ico">
+    <Grid Margin="18" RowDefinitions="Auto,Auto,*,Auto">
         <StackPanel Grid.Row="0" Margin="0,0,0,14">
             <TextBlock Text="{l:Tr Manage.Title}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center"/>
             <TextBlock Text="{l:Tr Manage.Subtitle}" FontSize="11"
@@ -24,16 +16,11 @@
                        Foreground="{StaticResource TealBrush}"/>
         </StackPanel>
 
-        <Grid Grid.Row="1" Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="1" Margin="0,0,0,12" ColumnDefinitions="Auto,*,Auto">
             <TextBlock Grid.Column="0" Text="{l:Tr Common.SdCardLabel}" VerticalAlignment="Center" FontWeight="Bold"
                        Margin="0,0,10,0" Foreground="{StaticResource TealBrush}" FontSize="12"/>
             <TextBox Grid.Column="1" x:Name="SdPathBox" VerticalAlignment="Center"/>
-            <Button Grid.Column="2" Content="{l:Tr Common.Browse}" Style="{StaticResource PrimaryButton}"
+            <Button Grid.Column="2" Content="{l:Tr Common.Browse}" Classes="PrimaryButton"
                     Margin="8,0,0,0" Padding="18,6" Click="Browse_Click"/>
         </Grid>
 
@@ -45,114 +32,70 @@
                            Foreground="{StaticResource MutedBrush}"
                            Text="{l:Tr Manage.EmptyHint}"/>
                 <ScrollViewer x:Name="ListScroller" VerticalScrollBarVisibility="Auto"
-                              Visibility="Collapsed" Margin="0,0,4,0">
+                              IsVisible="False" Margin="0,0,4,0">
                     <ItemsControl x:Name="InstalledList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="0,0,0,1"
                                         Padding="12,8">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                                    <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="14"/>
                                             <TextBlock Text="{Binding Details}" FontSize="11"
                                                        Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
                                         </StackPanel>
 
-                                        <!-- Fixed box for the buttons, split into two equal-width
-                                             columns. Update/Reload and Uninstall each centre inside
-                                             their own column, so their icons sit at fixed, symmetric
-                                             x-positions regardless of label text width — "Update/Reload"
-                                             is wider than "Uninstall", so a plain HorizontalAlignment
-                                             ="Center" on a shared StackPanel visibly skewed the pair.
-                                             A lone Install button spans both columns and centres
-                                             across the same total width, landing exactly on the
-                                             midpoint between where the other two icons sit. -->
-                                        <Grid Grid.Column="1" Width="152" Height="52" VerticalAlignment="Center">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <Button Grid.Column="0" Click="Update_Click" Tag="{Binding}" Cursor="Hand"
+                                        <Grid Grid.Column="1" Width="152" Height="52" VerticalAlignment="Center"
+                                              ColumnDefinitions="*,*">
+                                            <Button Grid.Column="0" Classes="IconButton" Click="Update_Click" Tag="{Binding}" Cursor="Hand"
                                                     HorizontalAlignment="Center" VerticalAlignment="Top"
-                                                    Visibility="{Binding UpdateButtonVisibility}">
-                                                <Button.Template>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <StackPanel Background="Transparent">
-                                                            <Grid Width="34" Height="34">
-                                                                <Ellipse x:Name="R" Stroke="{StaticResource TealBrush}"
-                                                                         StrokeThickness="2" Fill="#1A2DD4BF"/>
-                                                                <Path Stroke="{StaticResource TealBrush}" StrokeThickness="2.4"
-                                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                                                      Data="M 17,11 L 17,23 M 10,17 L 17,23 L 24,17"/>
-                                                            </Grid>
-                                                            <TextBlock Text="{Binding ActionLabel}" HorizontalAlignment="Center"
-                                                                       Margin="0,4,0,0" FontSize="10" FontWeight="Bold"
-                                                                       Foreground="{StaticResource TealBrush}"/>
-                                                        </StackPanel>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="R" Property="StrokeThickness" Value="2.9"/>
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Button.Template>
+                                                    IsVisible="{Binding UpdateButtonVisibility}">
+                                                <StackPanel Background="Transparent">
+                                                    <Grid Width="34" Height="34">
+                                                        <Ellipse Classes="Ring" Stroke="{StaticResource TealBrush}"
+                                                                 StrokeThickness="2" Fill="#1A2DD4BF"/>
+                                                        <Path Stroke="{StaticResource TealBrush}" StrokeThickness="2.4"
+                                                              StrokeLineCap="Round"
+                                                              Data="M 17,11 L 17,23 M 10,17 L 17,23 L 24,17"/>
+                                                    </Grid>
+                                                    <TextBlock Text="{Binding ActionLabel}" HorizontalAlignment="Center"
+                                                               Margin="0,4,0,0" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{StaticResource TealBrush}"/>
+                                                </StackPanel>
                                             </Button>
 
-                                            <Button Grid.Column="1" Click="Uninstall_Click" Tag="{Binding}" Cursor="Hand"
+                                            <Button Grid.Column="1" Classes="IconButton" Click="Uninstall_Click" Tag="{Binding}" Cursor="Hand"
                                                     HorizontalAlignment="Center" VerticalAlignment="Top"
-                                                    Visibility="{Binding ManageVisibility}">
-                                                <Button.Template>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <StackPanel Background="Transparent">
-                                                            <Grid Width="34" Height="34">
-                                                                <Ellipse x:Name="R" Stroke="{StaticResource PurpleBrush}"
-                                                                         StrokeThickness="2" Fill="#14A78BFA"/>
-                                                                <Path Stroke="{StaticResource PurpleBrush}" StrokeThickness="2.4"
-                                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                                                      Data="M 11,11 L 23,23 M 23,11 L 11,23"/>
-                                                            </Grid>
-                                                            <TextBlock Text="{l:Tr Manage.Uninstall}" HorizontalAlignment="Center"
-                                                                       Margin="0,4,0,0" FontSize="10" FontWeight="Bold"
-                                                                       Foreground="{StaticResource PurpleBrush}"/>
-                                                        </StackPanel>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="R" Property="StrokeThickness" Value="2.9"/>
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Button.Template>
+                                                    IsVisible="{Binding ManageVisibility}">
+                                                <StackPanel Background="Transparent">
+                                                    <Grid Width="34" Height="34">
+                                                        <Ellipse Classes="Ring" Stroke="{StaticResource PurpleBrush}"
+                                                                 StrokeThickness="2" Fill="#14A78BFA"/>
+                                                        <Path Stroke="{StaticResource PurpleBrush}" StrokeThickness="2.4"
+                                                              StrokeLineCap="Round"
+                                                              Data="M 11,11 L 23,23 M 23,11 L 11,23"/>
+                                                    </Grid>
+                                                    <TextBlock Text="{l:Tr Manage.Uninstall}" HorizontalAlignment="Center"
+                                                               Margin="0,4,0,0" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{StaticResource PurpleBrush}"/>
+                                                </StackPanel>
                                             </Button>
 
-                                            <Button Grid.Column="0" Grid.ColumnSpan="2" Click="Install_Click" Tag="{Binding}" Cursor="Hand"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
-                                                Visibility="{Binding InstallVisibility}">
-                                                <Button.Template>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <StackPanel Background="Transparent">
-                                                            <Grid Width="34" Height="34">
-                                                                <Ellipse x:Name="R" Stroke="{StaticResource TealBrush}"
-                                                                         StrokeThickness="2" Fill="#1A2DD4BF"/>
-                                                                <Path Stroke="{StaticResource TealBrush}" StrokeThickness="2.4"
-                                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                                                      Data="M 17,11 L 17,23 M 10,17 L 17,23 L 24,17"/>
-                                                            </Grid>
-                                                            <TextBlock Text="{l:Tr Manage.Install}" HorizontalAlignment="Center"
-                                                                       Margin="0,4,0,0" FontSize="10" FontWeight="Bold"
-                                                                       Foreground="{StaticResource TealBrush}"/>
-                                                        </StackPanel>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="R" Property="StrokeThickness" Value="2.9"/>
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Button.Template>
+                                            <Button Grid.Column="0" Grid.ColumnSpan="2" Classes="IconButton" Click="Install_Click" Tag="{Binding}" Cursor="Hand"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                    IsVisible="{Binding InstallVisibility}">
+                                                <StackPanel Background="Transparent">
+                                                    <Grid Width="34" Height="34">
+                                                        <Ellipse Classes="Ring" Stroke="{StaticResource TealBrush}"
+                                                                 StrokeThickness="2" Fill="#1A2DD4BF"/>
+                                                        <Path Stroke="{StaticResource TealBrush}" StrokeThickness="2.4"
+                                                              StrokeLineCap="Round"
+                                                              Data="M 17,11 L 17,23 M 10,17 L 17,23 L 24,17"/>
+                                                    </Grid>
+                                                    <TextBlock Text="{l:Tr Manage.Install}" HorizontalAlignment="Center"
+                                                               Margin="0,4,0,0" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{StaticResource TealBrush}"/>
+                                                </StackPanel>
                                             </Button>
                                         </Grid>
                                     </Grid>
@@ -164,19 +107,12 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="3" Margin="0,14,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="3" Margin="0,14,0,0" ColumnDefinitions="Auto,*,Auto">
             <TextBlock Grid.Column="0" x:Name="StatusText" VerticalAlignment="Center" HorizontalAlignment="Left"
                        FontSize="12" FontWeight="Bold" TextWrapping="Wrap" MaxWidth="380"/>
-            <!-- Shown only while a per-tool install/update/reload is running, same animated
-                 gradient fill as the main window's build progress bar. -->
             <ProgressBar Grid.Column="1" x:Name="ActionProgress" Height="14" Margin="14,0"
-                         VerticalAlignment="Center" Visibility="Collapsed"/>
-            <Button Grid.Column="2" Content="{l:Tr Common.Close}" Style="{StaticResource PrimaryButton}" Padding="20,7"
+                         VerticalAlignment="Center" IsVisible="False"/>
+            <Button Grid.Column="2" Content="{l:Tr Common.Close}" Classes="PrimaryButton" Padding="20,7"
                     HorizontalAlignment="Right" Click="Close_Click"/>
         </Grid>
     </Grid>
