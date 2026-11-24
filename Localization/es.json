@@ -267,7 +267,7 @@
   "GitHub.Title": "Token de GitHub",
   "GitHub.Headline": "Amplía el límite de GitHub",
   "GitHub.Description": "Sin iniciar sesión, este programa puede hacer 60 peticiones a GitHub por hora. Un token de acceso personal lo amplía a 5.000. No hace falta ningún permiso: este programa solo lee datos públicos de releases, así que un token con todas las casillas sin marcar funciona perfectamente.",
-  "GitHub.CreateToken": "Crear un token en GitHub ↗",
+  "GitHub.CreateToken": "Crear un token en GitHub",
   "GitHub.TokenLabel": "TOKEN",
   "GitHub.LogOut": "Cerrar sesión",
   "GitHub.Save": "Guardar",

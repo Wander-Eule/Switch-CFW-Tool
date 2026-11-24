@@ -31,6 +31,13 @@
         <SolidColorBrush x:Key="SystemControlHighlightAccentBrush" Color="#332DD4BF"/>
         <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#242440"/>
         <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#24FFFFFF"/>
+
+        <!-- Fluent pads a horizontal slider with 15 px above and below the track and a 32 px
+             minimum height. The Theming window stacks three of them, and at that size they
+             pushed the element list above down to half its height. -->
+        <GridLength x:Key="SliderPreContentMargin">3</GridLength>
+        <GridLength x:Key="SliderPostContentMargin">3</GridLength>
+        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
     </Application.Resources>
 
     <Application.Styles>
@@ -65,6 +72,9 @@
                             <Path x:Name="XMark" Stroke="{StaticResource PurpleBrush}" StrokeThickness="1.9"
                                   StrokeLineCap="Round"
                                   Data="M 8,8 L 14,14 M 14,8 L 8,14"/>
+                            <!-- Download arrow rather than a plain checkmark: a selected tool
+                                 is something that will be downloaded, and the arrow says so
+                                 at a glance. -->
                             <Path x:Name="CheckMark" Stroke="{StaticResource TealBrush}" StrokeThickness="2.1"
                                   StrokeLineCap="Round" IsVisible="False"
                                   Data="M 11,7 L 11,15 M 6.5,10.5 L 11,15 L 15.5,10.5"/>
@@ -257,6 +267,9 @@
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="16,7"/>
+            <!-- Fluent gives tab headers a 48 px minimum height; these are pill buttons sized
+                 by their padding instead. -->
+            <Setter Property="MinHeight" Value="0"/>
             <Setter Property="Margin" Value="0,0,8,0"/>
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Background" Value="#22FFFFFF"/>

@@ -54,6 +54,10 @@ public partial class ManageCfwWindow : Window
     private static readonly SolidColorBrush ErrorBrush = new(Color.FromRgb(0xFF, 0x6B, 0x6B));
 
     private readonly List<InstalledEntry> _entries = new();
+
+    // Latest-release version per tool id, fetched once per window and reused across rescans —
+    // re-checking every installed tool after every single install/uninstall would burn through
+    // GitHub's anonymous rate limit (60/hour) fast.
     private readonly Dictionary<string, string> _latestVersionCache = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _updateCheckCts;
 
@@ -80,6 +84,8 @@ public partial class ManageCfwWindow : Window
             if (Directory.Exists(initialPath)) Rescan();
         }
 
+        // A path typed by hand is picked up when the field loses focus, so there's still a
+        // way in without the folder picker.
         SdPathBox.LostFocus += (_, _) =>
         {
             if (Directory.Exists(SdPath)) Rescan();
@@ -96,12 +102,15 @@ public partial class ManageCfwWindow : Window
         if (folders.Count == 0) return;
 
         SdPathBox.Text = folders[0].Path.LocalPath;
-        Rescan();
+        Rescan();   // picking a folder already states the intent — no second click needed
     }
 
     private void Rescan()
     {
         BuildEntries();
+
+        // Fire-and-forget: the list above is already correct and shown, this only fills in
+        // "Update" vs "Reload" once the newest release for each tool comes back.
         _ = CheckForUpdatesAsync();
     }
 
@@ -109,19 +118,25 @@ public partial class ManageCfwWindow : Window
     {
         _entries.Clear();
 
+        // Picks up anything copied onto the card by hand since the last scan.
         InstallManifest.MergeImports(SdPath);
 
         var records = InstallManifest.Load(SdPath)
             .ToDictionary(r => r.ToolId, StringComparer.OrdinalIgnoreCase);
 
+        // Scanning the card as well as reading the record: a card set up elsewhere has no
+        // record at all, and even one of ours can have tools added by hand afterwards.
         var detected = ToolDetector.Scan(SdPath)
             .ToDictionary(d => d.ToolId, StringComparer.OrdinalIgnoreCase);
 
+        // Every tool is listed, so the card can be filled out from here as well as tidied up.
         foreach (var tool in ToolCatalog.All)
         {
             records.TryGetValue(tool.Id, out var record);
             detected.TryGetValue(tool.Id, out var trace);
 
+            // Only files that are actually still there, so a hand-deleted tool doesn't linger
+            // in the list as if it were installed.
             var recorded = record?.Files
                 .Select(f => Path.Combine(SdPath, f.Replace('/', Path.DirectorySeparatorChar)))
                 .Where(File.Exists)
@@ -262,6 +277,9 @@ public partial class ManageCfwWindow : Window
         StatusText.Foreground = InfoBrush;
         StatusText.Text = Loc.T(reinstall ? "Manage.Status.Reinstalling" : "Manage.Status.Installing", tool.DisplayName);
 
+        // A single tool has no sub-steps to count, unlike the main window's per-tool build
+        // progress — so the bar is shown full-width rather than stuck at 0%, and the animated
+        // gradient flowing across it is what actually signals "still working".
         ActionProgress.Minimum = 0;
         ActionProgress.Maximum = 1;
         ActionProgress.Value = 1;
@@ -274,6 +292,8 @@ public partial class ManageCfwWindow : Window
             var downloader = new DownloadService(staging);
             var builder = new SdCardBuilder(SdPath);
 
+            // Writing onto the card itself, so the record is merged straight away rather than
+            // handed over as an import file.
             var installer = new ToolInstaller(_github, downloader, builder, SdPath, SdPath,
                 asImport: false, _log);
 
@@ -282,6 +302,7 @@ public partial class ManageCfwWindow : Window
 
             if (ok)
             {
+                // A tool arriving can bring a KIP with it, which changes the boot entries.
                 var ini = new HekateIniService();
                 ini.SyncKipUsage(SdPath, InstallManifest.HasKipTool(SdPath));
                 ini.SyncSecmonLines(SdPath);
@@ -315,6 +336,8 @@ public partial class ManageCfwWindow : Window
     {
         if ((sender as Button)?.Tag is not InstalledEntry entry) return;
 
+        // Destructive, so it still asks — but only to confirm, not to negotiate over which
+        // files go: everything the tool installed is removed.
         var leftovers = ToolLeftovers.FindConfigFolders(SdPath, entry.ToolId);
 
         var reason = Loc.T("Manage.Remove.Files");
@@ -339,6 +362,8 @@ public partial class ManageCfwWindow : Window
 
         _log(Loc.T("Log.Manage.Removing", entry.DisplayName), LogKind.Normal);
 
+        // Entries can be single files or whole folders — a title-ID directory under
+        // atmosphere/contents is one item but many files.
         foreach (var full in toDelete)
         {
             var shown = Relative(full);
@@ -388,6 +413,9 @@ public partial class ManageCfwWindow : Window
 
         InstallManifest.Remove(SdPath, entry.ToolId);
 
+        // Removing a tool can invalidate parts of the boot menu: a kip1 line with no KIP
+        // behind it, a NO KIP entry with nothing to fall back from, or a secmon line whose
+        // exosphere.bin just went with the tool. All of that is corrected here.
         try
         {
             var ini = new HekateIniService();
@@ -409,6 +437,7 @@ public partial class ManageCfwWindow : Window
         Rescan();
     }
 
+    /// <summary>Path as it reads on the card, for log output.</summary>
     private string Relative(string full)
     {
         try

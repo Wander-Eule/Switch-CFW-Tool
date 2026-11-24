@@ -26,6 +26,8 @@
                 <MenuItem Header="{l:Tr Menu.Help.QuickTour}" Click="QuickTour_Click"/>
                 <MenuItem Header="{l:Tr Menu.Help.Faq}" Click="Faq_Click"/>
             </MenuItem>
+            <!-- Filled from code with every language in Localization/, each shown under its
+                 own name so it can be found whatever language is currently active. -->
             <MenuItem x:Name="MenuLanguage" Header="{l:Tr Menu.Language}"/>
             <MenuItem Header="{l:Tr Menu.Debug}">
                 <MenuItem Header="{l:Tr Menu.Debug.GitHubToken}" Click="GitHubLogin_Click"/>
@@ -126,6 +128,8 @@
                            Margin="0,0,10,0" Foreground="{StaticResource TealBrush}" FontSize="12"/>
                 <Grid Grid.Column="1">
                     <TextBox x:Name="OutputPathBox" VerticalAlignment="Center" MinWidth="120"/>
+                    <!-- Placeholder shown until something is chosen; the box itself stays empty
+                         so nothing has to be cleared before typing a path. -->
                     <TextBlock x:Name="TargetHint" IsHitTestVisible="False"
                                Text="{l:Tr Main.Target.Hint}"
                                VerticalAlignment="Center" Margin="10,0,0,0" FontSize="11.5"
@@ -141,6 +145,7 @@
                         Classes="PrimaryButton" Padding="22,9" Click="Build_Click"/>
                 <ProgressBar Grid.Row="0" Grid.Column="1" x:Name="BuildProgress" Height="14"
                              Margin="14,0,0,0" VerticalAlignment="Center"/>
+                <!-- Result shown here so the outcome is visible even with the log hidden. -->
                 <TextBlock Grid.Row="1" Grid.Column="1" x:Name="StatusText"
                            FontWeight="Bold" FontSize="12.5" TextWrapping="Wrap"
                            HorizontalAlignment="Right" TextAlignment="Right"

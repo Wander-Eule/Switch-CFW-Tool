@@ -269,7 +269,7 @@
   "GitHub.Title": "GitHub Token",
   "GitHub.Headline": "Raise the GitHub rate limit",
   "GitHub.Description": "Without logging in, this app can make 60 GitHub requests per hour. A personal access token raises that to 5,000. No permissions are needed — this app only reads public release data, so a token with every box unchecked works fine.",
-  "GitHub.CreateToken": "Create a token on GitHub ↗",
+  "GitHub.CreateToken": "Create a token on GitHub",
   "GitHub.TokenLabel": "TOKEN",
   "GitHub.LogOut": "Log Out",
   "GitHub.Save": "Save",

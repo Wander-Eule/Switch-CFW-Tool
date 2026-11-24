@@ -134,6 +134,9 @@
                                        HorizontalAlignment="Center" Margin="0,0,0,10"
                                        Foreground="{StaticResource TealBrush}"/>
 
+                            <!-- Mock of the Ultrahand overlay; every brush is driven from code. Its
+                                 texts are deliberately left untranslated: they stand in for
+                                 Ultrahand's own screen, not for this program's. -->
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                 <Border x:Name="PreviewRoot" CornerRadius="6" Padding="12,10"
                                         VerticalAlignment="Top" Background="#000000">
@@ -149,6 +152,7 @@
 
                                             <Border Grid.Column="1" x:Name="PvHeadDivider" Width="1.4" Margin="8,2,8,2"/>
 
+                                            <!-- pill-shaped widget with its own travelling border -->
                                             <Border Grid.Column="2" x:Name="PvWidget" CornerRadius="14" BorderThickness="1.6"
                                                     Padding="11,3" VerticalAlignment="Center">
                                                 <StackPanel>
@@ -313,6 +317,8 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                                <!-- Clipped to the rounded corners so the artwork meets
+                                                     the frame instead of leaving a lighter margin. -->
                                                 <Border CornerRadius="6" BorderThickness="1"
                                                         BorderBrush="{StaticResource BorderBrushSubtle}"
                                                         Width="92" Height="148" ClipToBounds="True">

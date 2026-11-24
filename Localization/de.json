@@ -268,7 +268,7 @@
   "GitHub.Title": "GitHub-Token",
   "GitHub.Headline": "Das GitHub-Limit anheben",
   "GitHub.Description": "Ohne Anmeldung kann dieses Programm 60 GitHub-Anfragen pro Stunde stellen. Ein persönlicher Access Token hebt das auf 5.000. Berechtigungen sind dafür nicht nötig — dieses Programm liest nur öffentliche Release-Daten, ein Token ohne einen einzigen Haken genügt also.",
-  "GitHub.CreateToken": "Token auf GitHub erstellen ↗",
+  "GitHub.CreateToken": "Token auf GitHub erstellen",
   "GitHub.TokenLabel": "TOKEN",
   "GitHub.LogOut": "Abmelden",
   "GitHub.Save": "Speichern",

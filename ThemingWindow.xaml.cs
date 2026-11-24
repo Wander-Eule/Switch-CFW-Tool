@@ -71,8 +71,12 @@ public partial class ThemingWindow : Window
     private readonly List<ThemeFieldItem> _items = new();
     private ThemeFieldItem? _editing;
 
+    // Guards the slider handler while values are being loaded into the sliders, so writing
+    // the UI doesn't immediately write back a rounded value.
     private bool _loadingField;
 
+    // Built in code, not XAML, so the gradient stops can be rewritten and rotated while the
+    // window is open.
     private readonly LinearGradientBrush _cursorBrush;
     private readonly LinearGradientBrush _widgetBrush;
     private readonly LinearGradientBrush _tableBrush;
@@ -89,6 +93,7 @@ public partial class ThemingWindow : Window
 
     private Bitmap? _wallpaper;
 
+    /// <summary>Destination shared by both tabs; read from the field at the top of the window.</summary>
     private string SdRoot => (SdPathBox.Text ?? "").Trim();
 
     public ThemingWindow()
@@ -160,6 +165,7 @@ public partial class ThemingWindow : Window
         RefreshWallpaperState();
     }
 
+    /// <summary>Marks whichever bundled wallpaper the selected card currently uses.</summary>
     private void RefreshWallpaperState()
     {
         string? active = null;
@@ -186,6 +192,7 @@ public partial class ThemingWindow : Window
         {
             if (item.IsActive)
             {
+                // Clicking the active one turns the wallpaper off again.
                 UltrahandWallpaper.Clear(SdRoot);
                 item.IsActive = false;
                 return;
@@ -193,6 +200,7 @@ public partial class ThemingWindow : Window
 
             UltrahandWallpaper.Apply(SdRoot, item.Resource);
 
+            // Only one can be active, so the others clear themselves.
             foreach (var other in _wallpapers)
                 other.IsActive = other == item;
         }
@@ -286,6 +294,7 @@ public partial class ThemingWindow : Window
 
     private SolidColorBrush Brush(string key) => new(ParseHex(Get(key)));
 
+    /// <summary>Ultrahand alpha keys run 0–15; mapped onto the 0–255 the preview needs.</summary>
     private byte Alpha(string key) => (byte)(int.TryParse(Get(key), out var a) ? Math.Clamp(a, 0, 15) * 17 : 255);
 
     private void RefreshPreview()
@@ -293,39 +302,46 @@ public partial class ThemingWindow : Window
         var bg = ParseHex(Get("bg_color"));
         PreviewRoot.Background = new SolidColorBrush(Color.FromArgb(Alpha("bg_alpha"), bg.R, bg.G, bg.B));
 
+        // header
         PvHeadDivider.Background = Brush("header_separator_color");
         PvClock.Foreground = Brush("clock_color");
         PvTemp.Foreground = Brush("temperature_color");
         PvBattery.Foreground = Brush("battery_color");
         PvHeaderSep.Background = Brush("header_separator_color");
 
+        // section headers
         foreach (var bar in new[] { PvSec1Bar, PvSec2Bar, PvSec3Bar })
             bar.Background = Brush("header_text_color");
         foreach (var text in new[] { PvSec1Text, PvSec2Text, PvSec3Text })
             text.Foreground = Brush("header_text_color");
 
+        // selected row
         var sel = ParseHex(Get("selection_bg_color"));
         PvSelection.Background = new SolidColorBrush(Color.FromArgb(Alpha("selection_bg_alpha"), sel.R, sel.G, sel.B));
         PvSelectedText.Foreground = Brush("selection_text_color");
         PvVersion.Foreground = Brush("version_text_color");
 
+        // toggles
         PvToggleOffTrack.Background = Brush("s2_toggle_off_color");
         PvToggleOnTrack.Background = Brush("s2_toggle_on_color");
         PvToggleOnTrack2.Background = Brush("s2_toggle_on_color");
         foreach (var knob in new[] { PvToggleOffKnob, PvToggleOnKnob, PvToggleOnKnob2 })
             knob.Background = Brush("s2_toggle_circle_color");
 
+        // plain rows
         PvItem2.Foreground = Brush("text_color");
         PvItem3.Foreground = Brush("text_color");
         PvRadioItem1.Foreground = Brush("text_color");
         PvRadioItem2.Foreground = Brush("text_color");
 
+        // trackbar
         PvTrackLabel.Foreground = Brush("text_color");
         PvTrackValue.Foreground = Brush("on_text_color");
         PvTrackEmpty.Background = Brush("trackbar_empty_color");
         PvTrackFull.Background = Brush("trackbar_malleable_slider_color");
         PvTrackKnob.Background = Brush("trackbar_slider_malleable_color");
 
+        // table
         var table = ParseHex(Get("table_bg_color"));
         PvTable.Background = new SolidColorBrush(Color.FromArgb(Alpha("table_bg_alpha"), table.R, table.G, table.B));
         PvTableL1.Foreground = Brush("table_section_text_color");
@@ -333,6 +349,7 @@ public partial class ThemingWindow : Window
         PvTableV1.Foreground = Brush("table_info_text_color");
         PvTableV2.Foreground = Brush("table_info_text_color");
 
+        // radio list
         PvRadioCode1.Foreground = Brush("on_text_color");
         PvRadioCode2.Foreground = Brush("on_text_color");
         PvRadioRing1.Stroke = Brush("s2_radio_selected_color");
@@ -341,6 +358,7 @@ public partial class ThemingWindow : Window
         PvRadioRing2.Stroke = Brush("s2_radio_ring_color");
         PvRadioRing2.Fill = Brushes.Transparent;
 
+        // bottom hints
         PvBackBadge.Background = Brush("bottom_button_color");
         PvOkBadge.Background = Brush("bottom_button_color");
         PvBackText.Foreground = Brush("bottom_text_color");
@@ -349,11 +367,21 @@ public partial class ThemingWindow : Window
         RefreshAnimations();
     }
 
+    /// <summary>
+    /// Rewrites the gradient colours in place; the rotation keeps running.
+    ///
+    /// Each animated border has its own key family — the selection, the status widget and the
+    /// info boxes are separately themeable in Ultrahand, and driving them all from one set
+    /// would misrepresent what the saved file does.
+    /// </summary>
     private void RefreshAnimations()
     {
         ApplyStops(_cursorBrush, Highlights("s2_highlight_color_"));
         ApplyStops(_widgetBrush, Highlights("s2_widget_border_color_"));
         ApplyStops(_tableBrush, Highlights("s2_table_border_color_"));
+
+        // Which key drives the ring around the slider knob while it is focused isn't
+        // documented; the selection colours are the closest match to how it looks in use.
         ApplyStops(_knobBrush, Highlights("s2_highlight_color_"));
 
         _logoColor1 = ParseHex(Get("dynamic_logo_color_1"));
@@ -387,6 +415,9 @@ public partial class ThemingWindow : Window
         if (folders.Count == 0) return;
 
         SdPathBox.Text = folders[0].Path.LocalPath;
+
+        // A different card can already carry a wallpaper, so the ticks are re-read rather
+        // than left showing the previous card's state.
         RefreshWallpaperState();
     }
 
@@ -479,6 +510,7 @@ public partial class ThemingWindow : Window
         }
     }
 
+    /// <summary>Parses an Ultrahand RRGGBB value, falling back to white on anything unexpected.</summary>
     public static Color ParseHex(string hex)
     {
         hex = hex.Trim().TrimStart('#');

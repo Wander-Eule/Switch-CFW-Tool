@@ -16,8 +16,23 @@ internal static class TitleBarTheme
     private const int DWMWA_CAPTION_COLOR = 35;
     private const int DWMWA_TEXT_COLOR = 36;
 
+    private const int GWL_STYLE = -16;
+    private const long WS_MAXIMIZEBOX = 0x00010000;
+    private const long WS_MINIMIZEBOX = 0x00020000;
+    private const uint SWP_FRAMECHANGED = 0x0020, SWP_NOMOVE = 0x0002, SWP_NOSIZE = 0x0001,
+                       SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010;
+
     [DllImport("dwmapi.dll", PreserveSig = true)]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static extern IntPtr GetWindowLongPtr(IntPtr hwnd, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    private static extern IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
 
     public static void Apply(Window window)
     {
@@ -31,6 +46,32 @@ internal static class TitleBarTheme
                 if (window.TryGetPlatformHandle()?.Handle is { } h && h != IntPtr.Zero)
                     ApplyCore(h);
             };
+
+        // Fixed-size dialogs only ever had a close button (WPF's ResizeMode="NoResize"). Avalonia
+        // 11 greys out maximise but still shows both buttons, so they are taken out of the
+        // native window style once the window is up — doing it earlier gets overwritten when
+        // Avalonia applies its own style on show.
+        if (!window.CanResize)
+            window.Opened += (_, _) =>
+            {
+                if (window.TryGetPlatformHandle()?.Handle is { } h && h != IntPtr.Zero)
+                    HideMinMaxButtons(h);
+            };
+    }
+
+    private static void HideMinMaxButtons(IntPtr hwnd)
+    {
+        try
+        {
+            var style = GetWindowLongPtr(hwnd, GWL_STYLE).ToInt64();
+            SetWindowLongPtr(hwnd, GWL_STYLE, new IntPtr(style & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)));
+            SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
+                SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        catch
+        {
+            // Cosmetic as well — the dialog works the same with the buttons showing.
+        }
     }
 
     private static void ApplyCore(IntPtr hwnd)

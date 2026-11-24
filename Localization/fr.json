@@ -268,7 +268,7 @@
   "GitHub.Title": "Jeton GitHub",
   "GitHub.Headline": "Relever la limite GitHub",
   "GitHub.Description": "Sans connexion, ce programme peut effectuer 60 requêtes GitHub par heure. Un jeton d'accès personnel porte cette limite à 5 000. Aucune autorisation n'est nécessaire : ce programme ne lit que les données publiques des releases, donc un jeton sans aucune case cochée suffit.",
-  "GitHub.CreateToken": "Créer un jeton sur GitHub ↗",
+  "GitHub.CreateToken": "Créer un jeton sur GitHub",
   "GitHub.TokenLabel": "JETON",
   "GitHub.LogOut": "Se déconnecter",
   "GitHub.Save": "Enregistrer",

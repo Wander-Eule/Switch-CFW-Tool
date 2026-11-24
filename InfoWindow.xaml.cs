@@ -21,6 +21,11 @@ public partial class InfoWindow : Window
         BuildCredits();
     }
 
+    /// <summary>
+    /// Builds one line per tool. The credit line is assembled in code rather than bound in
+    /// XAML because each recognised creator name has to become its own clickable link, and
+    /// a single line can mention several people (original author plus forkers).
+    /// </summary>
     private void BuildCredits()
     {
         // Longest names first so a name that contains another isn't matched in pieces.
@@ -33,10 +38,14 @@ public partial class InfoWindow : Window
         {
             AddCreditLine(tool.DisplayName, LocalizeCredit(tool.Author), nameRegex);
 
+            // Companions are separate projects by other people, so they get their own
+            // credit line rather than being folded into the parent tool's.
             foreach (var companion in tool.Companions)
                 AddCreditLine(companion.DisplayName, LocalizeCredit(companion.Author), nameRegex);
         }
 
+        // Not a downloaded tool, so it isn't in the catalog — the bundled Hekate boot icons
+        // (Assets/bootloader_res) are from github.com/NicholeMattera/Hekate-Icons.
         AddCreditLine(Loc.T("Info.Icons"), "NicholeMattera", nameRegex);
     }
 

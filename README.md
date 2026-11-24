@@ -5,7 +5,7 @@
 <h1 align="center">Switch-CFW-Tool</h1>
 
 <p align="center">
-  <strong>Latest version: v1.2</strong> · Windows · Linux · macOS
+  <strong>Latest version: v1.3</strong> · Windows · Linux · macOS
 </p>
 
 Cross-platform tool (C# / Avalonia UI, .NET 8) for automatically assembling a ready-to-use `SDMC` folder
@@ -16,12 +16,19 @@ card directly on Windows, Linux, and macOS.
 
 Pre-built self-contained binaries (no .NET runtime required) are available for:
 
-- **Windows** (`win-x64`) – `.zip`
-- **Linux** (`linux-x64`) – `.tar.gz`
-- **macOS Apple Silicon** (`osx-arm64`) – `.tar.gz`
-- **macOS Intel** (`osx-x64`) – `.tar.gz`
+- **Windows** (`win-x64`) – `Switch-CFW-Tool.exe`, a single file that runs as is
+- **Linux** (`linux-x64`) – `Switch-CFW-Tool-linux-x64.tar.gz`
+- **macOS Apple Silicon** (`osx-arm64`) – `Switch-CFW-Tool-macos-arm64.tar.gz`
+- **macOS Intel** (`osx-x64`) – `Switch-CFW-Tool-macos-x64.tar.gz`
 
 Download the latest release from the [Releases](../../releases) page, or grab the latest CI build artifacts from [GitHub Actions](../../actions/workflows/build.yml).
+
+**Linux:** unpack and start `Switch CFW Tool/Switch-CFW-Tool` (the archive keeps the executable bit).
+
+**macOS:** the app isn't signed with an Apple developer certificate, so Gatekeeper blocks the first
+start. Either right-click the file → *Open* → *Open*, or allow it under *System Settings → Privacy &
+Security → Open Anyway*. From a terminal, `xattr -dr com.apple.quarantine "Switch CFW Tool"` does the
+same for the unpacked folder.
 
 ## Building
 
@@ -42,9 +49,13 @@ dotnet publish -c Release -r osx-x64 -p:SelfContained=true -p:PublishSingleFile=
 
 The binary then ends up at `bin/Release/net8.0/<rid>/publish/Switch-CFW-Tool` (or `.exe` on Windows).
 
-For a release, run `build-release.cmd` (double-click) instead. It publishes as above and packs the
-result into `release/Switch-CFW-Tool-v<Version>.zip`, containing a `Switch CFW Tool` folder with
-the `.exe` and `LICENSE`. The version comes from `<Version>` in `Switch-CFW-Tool.csproj`.
+Releases are built by GitHub Actions (`.github/workflows/build.yml`): every push to `main` builds all
+four platforms as workflow artifacts, and pushing a tag `v<Version>` (e.g. `v1.3`) additionally
+publishes them as a GitHub release. Keep `<Version>` in `Switch-CFW-Tool.csproj` in step with the tag.
+
+For a local Windows build, `build-release.cmd` (double-click) still works: it publishes as above and
+packs the result into `release/Switch-CFW-Tool-v<Version>.zip`, containing a `Switch CFW Tool` folder
+with the `.exe` and `LICENSE`.
 
 ## Project structure
 

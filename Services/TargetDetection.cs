@@ -58,6 +58,7 @@ public static class TargetDetection
                 }
             }
 
+            // Anything below a drive root / mount point is a folder, whatever it sits on.
             if (matchedDrive == null)
                 return new TargetInfo(TargetKind.PcFolder, null, 0, null);
 
@@ -74,6 +75,8 @@ public static class TargetDetection
             // would only invite a dangerous answer.
             if (OperatingSystem.IsWindows())
             {
+                // The system drive is never a card, and asking about it would only invite a
+                // dangerous answer.
                 var windows = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
                 if (windows != null && string.Equals(normalizedFull, TrimTrailingSeparator(windows), comparison))
                     return info with { Kind = TargetKind.PcFolder };

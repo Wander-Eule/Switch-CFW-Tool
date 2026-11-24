@@ -62,6 +62,9 @@
         </Border>
 
         <Grid Grid.Row="2" Margin="0,16,0,0">
+            <!-- Nudged past the window's content margin with a negative offset so it sits in
+                 the actual bottom-left corner; it's decorative, so overflowing the layout
+                 slightly is fine (the Grid doesn't clip). -->
             <TextBlock Text="༝༚༝༚" VerticalAlignment="Bottom" HorizontalAlignment="Left"
                        FontSize="30" Margin="-6,0,0,-18"
                        Foreground="{StaticResource MutedBrush}"/>

@@ -85,6 +85,9 @@ public class QuickTour
         _index = 0;
         _host.IsVisible = true;
 
+        // The layer was collapsed until now, so it has no size yet and measuring against it
+        // would place everything at the top-left corner. Forcing a layout pass first is what
+        // makes the very first step land correctly instead of only from the second run on.
         _host.UpdateLayout();
         ShowCurrent();
     }
@@ -214,6 +217,9 @@ public class QuickTour
         if (_shade == null || _ring == null || _toast == null || _body == null || _counter == null) return;
 
         var step = _steps[_index];
+
+        // Guarantees the target's position is current before it's read. Safe here because
+        // every path into this method is already deferred past the layout pass.
         _host.UpdateLayout();
 
         var size = _host.Bounds.Size;
@@ -249,6 +255,7 @@ public class QuickTour
 
         if (target is not { IsVisible: true } || target.Bounds.Width <= 0)
         {
+            // Nothing to point at — centre the cut-out so the text still has a home.
             return new Rect(hostSize.Width / 2 - 60, hostSize.Height / 2 - 30, 120, 60);
         }
 
@@ -276,12 +283,14 @@ public class QuickTour
 
         const double gap = 14;
 
+        // Below the cut-out where there's room, above it otherwise.
         var top = hole.Bottom + gap;
         if (top + toast.Height > hostSize.Height - 10)
             top = hole.Top - gap - toast.Height;
 
         top = Math.Clamp(top, 10, Math.Max(10, hostSize.Height - toast.Height - 10));
 
+        // Aligned to the element, then pulled back inside the window if it would overflow.
         var left = hole.X;
         if (left + toast.Width > hostSize.Width - 10)
             left = hostSize.Width - toast.Width - 10;

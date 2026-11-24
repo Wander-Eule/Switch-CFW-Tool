@@ -12,7 +12,7 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 
     <!-- Shown in the exe's file properties and used by build-release scripts for the archive name. -->
-    <Version>1.2</Version>
+    <Version>1.3</Version>
 
     <!-- Self contained publish settings so end users don't need the .NET runtime installed.
          Build with: dotnet publish -c Release -r <rid> -p:SelfContained=true -p:PublishSingleFile=true -->
@@ -40,7 +40,8 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
-    <!-- ProtectedData is used on Windows for DPAPI token encryption. -->
+    <!-- ProtectedData is used on Windows for DPAPI token encryption. It is genuinely a separate
+         package on .NET; ZipFile is not — it ships with the framework. -->
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 

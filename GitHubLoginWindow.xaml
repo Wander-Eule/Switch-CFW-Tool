@@ -19,8 +19,17 @@
 
             <Button Classes="LinkButton" Margin="0,12,0,0" HorizontalAlignment="Center"
                     Click="Link_Click" Tag="https://github.com/settings/tokens/new">
-                <TextBlock Text="{l:Tr GitHub.CreateToken}" FontWeight="SemiBold"
-                           TextDecorations="Underline"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:Tr GitHub.CreateToken}" FontWeight="SemiBold"
+                               TextDecorations="Underline"/>
+                    <!-- "Opens in the browser" arrow, drawn rather than typed: the bundled Inter
+                         font has no glyph for it, and a fallback font that does isn't
+                         guaranteed on every platform. -->
+                    <Path Data="M 0.75,8.25 L 8.25,0.75 M 3,0.75 L 8.25,0.75 L 8.25,6"
+                          StrokeThickness="1.5" StrokeLineCap="Round" StrokeJoin="Round"
+                          Stroke="{Binding $parent[Button].Foreground}"
+                          Margin="5,1,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
             </Button>
 
             <TextBlock Text="{l:Tr GitHub.TokenLabel}" FontSize="10.5" FontWeight="Bold" Margin="0,16,0,6"

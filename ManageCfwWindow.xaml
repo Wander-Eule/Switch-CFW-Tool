@@ -110,6 +110,8 @@
         <Grid Grid.Row="3" Margin="0,14,0,0" ColumnDefinitions="Auto,*,Auto">
             <TextBlock Grid.Column="0" x:Name="StatusText" VerticalAlignment="Center" HorizontalAlignment="Left"
                        FontSize="12" FontWeight="Bold" TextWrapping="Wrap" MaxWidth="380"/>
+            <!-- Shown only while a per-tool install/update/reload is running, same animated
+                 gradient fill as the main window's build progress bar. -->
             <ProgressBar Grid.Column="1" x:Name="ActionProgress" Height="14" Margin="14,0"
                          VerticalAlignment="Center" IsVisible="False"/>
             <Button Grid.Column="2" Content="{l:Tr Common.Close}" Classes="PrimaryButton" Padding="20,7"

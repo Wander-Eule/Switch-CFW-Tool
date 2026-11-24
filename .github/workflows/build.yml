@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -21,16 +21,16 @@ jobs:
         include:
           - os: windows-latest
             rid: win-x64
-            archive: zip
+            asset: Switch-CFW-Tool.exe
           - os: ubuntu-latest
             rid: linux-x64
-            archive: tar.gz
+            asset: Switch-CFW-Tool-linux-x64.tar.gz
           - os: macos-latest
             rid: osx-arm64
-            archive: tar.gz
+            asset: Switch-CFW-Tool-macos-arm64.tar.gz
           - os: macos-latest
             rid: osx-x64
-            archive: tar.gz
+            asset: Switch-CFW-Tool-macos-x64.tar.gz
 
     steps:
       - name: Checkout
@@ -50,26 +50,30 @@ jobs:
           -p:PublishSingleFile=true
           -o publish
 
+      # Windows ships as the bare .exe, the same single file earlier releases offered.
       - name: Package (Windows)
-        if: matrix.archive == 'zip'
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $stage = "stage/Switch CFW Tool"
-          New-Item -ItemType Directory -Path $stage -Force | Out-Null
-          Copy-Item "publish/*" $stage -Recurse
-          Copy-Item "LICENSE" $stage
           New-Item -ItemType Directory -Path "dist" -Force | Out-Null
-          Compress-Archive -Path $stage -DestinationPath "dist/Switch-CFW-Tool-${{ matrix.rid }}.zip"
+          Copy-Item "publish/Switch-CFW-Tool.exe" "dist/${{ matrix.asset }}"
 
+      # Apple Silicon refuses to run an unsigned binary at all; an ad-hoc signature is enough
+      # for it to start (Gatekeeper still asks once, see the README).
+      - name: Ad-hoc sign (macOS)
+        if: runner.os == 'macOS'
+        run: codesign --force --sign - "publish/Switch-CFW-Tool"
+
+      # A tarball keeps the executable bit, which a bare download would lose.
       - name: Package (Linux / macOS)
-        if: matrix.archive == 'tar.gz'
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           mkdir -p "stage/Switch CFW Tool" dist
           cp -R publish/* "stage/Switch CFW Tool/"
           cp LICENSE "stage/Switch CFW Tool/"
           chmod +x "stage/Switch CFW Tool/Switch-CFW-Tool"
-          tar -czf "dist/Switch-CFW-Tool-${{ matrix.rid }}.tar.gz" -C stage "Switch CFW Tool"
+          tar -czf "dist/${{ matrix.asset }}" -C stage "Switch CFW Tool"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -82,6 +86,8 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -90,7 +96,9 @@ jobs:
           merge-multiple: true
 
       - name: Publish Release
-        uses: softprops/action-gh-release@v2
+        # Pinned to the commit behind v2: this step can write to the repository.
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
+          name: Switch-CFW-Tool ${{ github.ref_name }}
           files: artifacts/*
           generate_release_notes: true

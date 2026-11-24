@@ -18,6 +18,8 @@
                 <StackPanel>
                     <TextBlock Text="{l:Tr Payload.V1.Header}" FontSize="11" FontWeight="Bold"
                                TextAlignment="Center" Foreground="{StaticResource TealBrush}" Margin="0,0,0,5"/>
+                    <!-- The filename is picked out in its own colour and a monospaced face so
+                         it reads as a file rather than as part of the sentence. -->
                     <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="18" TextAlignment="Center">
                         <Run Text="{l:Tr Payload.V1.Before}"/>
                         <Run Text="payload.bin" FontFamily="Consolas, Menlo, monospace" FontWeight="Bold"

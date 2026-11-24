@@ -20,6 +20,7 @@ public static class ProgressBarAnimation
 
     public static void SetIsAnimating(ProgressBar bar, bool animate)
     {
+        // The template may not be applied yet on the very first call after startup.
         if (!bar.IsLoaded)
         {
             bar.Loaded += Retry;
@@ -73,6 +74,7 @@ public static class ProgressBarAnimation
     {
         shift = new TranslateTransform();
 
+        // Ends on the starting colour so the repeated tiles meet seamlessly.
         var brush = new LinearGradientBrush
         {
             StartPoint = new RelativePoint(0, 0, RelativeUnit.Absolute),

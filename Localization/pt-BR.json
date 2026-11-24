@@ -267,7 +267,7 @@
   "GitHub.Title": "Token do GitHub",
   "GitHub.Headline": "Aumente o limite de requisições do GitHub",
   "GitHub.Description": "Sem login, este app pode fazer 60 requisições ao GitHub por hora. Um token de acesso pessoal aumenta isso para 5.000. Nenhuma permissão é necessária — este app só lê dados públicos das versões (releases), então um token com todas as opções desmarcadas funciona perfeitamente.",
-  "GitHub.CreateToken": "Criar um token no GitHub ↗",
+  "GitHub.CreateToken": "Criar um token no GitHub",
   "GitHub.TokenLabel": "TOKEN",
   "GitHub.LogOut": "Sair",
   "GitHub.Save": "Salvar",

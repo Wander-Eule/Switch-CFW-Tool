@@ -111,7 +111,9 @@ public sealed class Loc : INotifyPropertyChanged
         Current = code;
         LanguageSettings.Save(code);
 
-        // Notify all indexer bindings to refresh in place.
+        // Notify all indexer bindings to refresh in place. "Item[]" is the conventional name
+        // for "every indexer value changed"; "Item" is raised as well for bindings that
+        // listen for the bare property name.
         Instance.PropertyChanged?.Invoke(Instance, new PropertyChangedEventArgs("Item"));
         Instance.PropertyChanged?.Invoke(Instance, new PropertyChangedEventArgs("Item[]"));
         LanguageChanged?.Invoke();
